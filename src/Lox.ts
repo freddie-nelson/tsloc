@@ -1,9 +1,9 @@
-import { readFileSync } from "fs";
+import { read, readFileSync } from "fs";
 import { createInterface } from "readline";
 import Scanner from "./Scanner";
 import Token from "./Token";
 
-class Lox {
+export default class Lox {
   static hadError = false;
 
   static main(args: string[]) {
@@ -40,11 +40,15 @@ class Lox {
             resolve(false);
           }
 
+          console.log(line);
+
           Lox.run(line);
           Lox.hadError = false;
           resolve(true);
         });
       });
+
+      reader.removeAllListeners("line");
 
       if (!proceed) break;
     }
