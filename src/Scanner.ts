@@ -94,6 +94,12 @@ export default class Scanner {
       case "/":
         if (this.match("/")) {
           while (this.peek() !== "\n" && !this.isAtEnd()) this.advance();
+        } else if (this.match("*")) {
+          while (this.peek() !== "*" && this.peekNext() !== "/" && !this.isAtEnd()) this.advance();
+
+          // consume ending */
+          this.advance();
+          this.advance();
         } else {
           this.addToken(TokenType.SLASH);
         }

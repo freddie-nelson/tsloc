@@ -40,8 +40,6 @@ export default class Lox {
             resolve(false);
           }
 
-          console.log(line);
-
           Lox.run(line);
           Lox.hadError = false;
           resolve(true);
