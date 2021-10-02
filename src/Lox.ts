@@ -68,4 +68,4 @@ export default class Lox {
   }
 }
 
-Lox.main(process.argv.slice(1, -1));
+Lox.main(process.argv.slice(2));
