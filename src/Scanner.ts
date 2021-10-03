@@ -42,6 +42,8 @@ export default class Scanner {
       this.scanToken();
     }
 
+    this.addToken(TokenType.EOF);
+
     return this.tokens;
   }
 
@@ -123,7 +125,7 @@ export default class Scanner {
         } else if (this.isAlpha(c)) {
           this.identifier();
         } else {
-          Lox.error(this.line, "Unexpected character.");
+          Lox.error(new Token(-1, c, undefined, this.line), `Unexpected character: ${c}.`);
         }
         break;
     }
@@ -154,13 +156,13 @@ export default class Scanner {
   }
 
   private string() {
-    while (this.peek() != '"' && !this.isAtEnd()) {
-      if (this.peek() == "\n") this.line++;
+    while (this.peek() !== '"' && !this.isAtEnd()) {
+      if (this.peek() === "\n") this.line++;
       this.advance();
     }
 
     if (this.isAtEnd()) {
-      Lox.error(this.line, "Unterminated string.");
+      Lox.error(new Token(TokenType.EOF, "", undefined, this.line), "Unterminated string.");
       return;
     }
 

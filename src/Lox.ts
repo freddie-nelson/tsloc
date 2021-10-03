@@ -1,7 +1,10 @@
 import { read, readFileSync } from "fs";
 import { createInterface } from "readline";
+import AstPrinter from "./AstPrinter";
+import Parser from "./Parser";
 import Scanner from "./Scanner";
 import Token from "./Token";
+import { TokenType } from "./TokenType";
 
 export default class Lox {
   static hadError = false;
@@ -55,11 +58,22 @@ export default class Lox {
   private static run(source: string) {
     const scanner = new Scanner(source);
     const tokens: Token[] = scanner.scanTokens();
-    tokens.forEach((t) => console.log(t));
+
+    const parser = new Parser(tokens);
+    const expression = parser.parse();
+
+    if (this.hadError) return;
+
+    console.log(expression);
+    console.log(new AstPrinter().print(expression));
   }
 
-  static error(line: number, message: string) {
-    Lox.report(line, "", message);
+  static error(token: Token, message: string) {
+    if (token.type === TokenType.EOF) {
+      this.report(token.line, "at end", message);
+    } else {
+      this.report(token.line, `at '${token.lexeme}'`, message);
+    }
   }
 
   private static report(line: number, where: string, message: string) {

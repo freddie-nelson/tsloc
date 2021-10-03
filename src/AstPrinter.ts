@@ -1,6 +1,4 @@
 import { Binary, Expr, Grouping, Literal, Unary, Visitor } from "./Expr";
-import Token from "./Token";
-import { TokenType } from "./TokenType";
 
 export default class AstPrinter implements Visitor<string> {
   print(expr: Expr): string {
