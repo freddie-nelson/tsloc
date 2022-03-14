@@ -97,6 +97,13 @@ export default class Parser {
     throw this.error(this.peek(), "Expect expression.");
   }
 
+  /**
+   * Checks if the current token matches any of the given types
+   * and if so, consumes it.
+   *
+   * @param types An array of types to match for
+   * @returns true when a token is matched, otherwise false.
+   */
   private match(...types: TokenType[]): boolean {
     for (const type of types) {
       if (this.check(type)) {
@@ -108,29 +115,64 @@ export default class Parser {
     return false;
   }
 
+  /**
+   * Consumes the current token if it's type matches the given type.
+   *
+   * @throws When the types don't match
+   *
+   * @param type The type to check for
+   * @param msg The message to log on error
+   * @returns The consumed token
+   */
   private consume(type: TokenType, msg: string) {
     if (this.check(type)) return this.advance();
     throw this.error(this.peek(), msg);
   }
 
+  /**
+   * Checks to see if the current token and
+   *
+   * @param type The type to check for
+   * @returns true if the type's match and this.isAtEnd() is false, otherwise false.
+   */
   private check(type: TokenType): boolean {
     if (this.isAtEnd()) return false;
     return this.peek().type === type;
   }
 
+  /**
+   * Consumes the current token, incrementing this.current.
+   *
+   * @returns The consumed token.
+   */
   private advance(): Token {
     if (!this.isAtEnd()) this.current++;
     return this.previous();
   }
 
+  /**
+   * Checks to see if the current token's type is {@link TokenType.EOF}
+   *
+   * @returns true if end of file is reached otherwise false.
+   */
   private isAtEnd(): boolean {
     return this.peek().type === TokenType.EOF;
   }
 
+  /**
+   * Gets the current token without consuming it.
+   *
+   * @returns The current token
+   */
   private peek(): Token {
     return this.tokens[this.current];
   }
 
+  /**
+   * Gets the previous token.
+   *
+   * @returns The previous token
+   */
   private previous(): Token {
     return this.tokens[this.current - 1];
   }

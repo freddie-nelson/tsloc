@@ -23,7 +23,6 @@ export default class GenerateAst {
     const data = `
     import Token from "./Token";
 
-
     export abstract class ${baseName} {
       abstract accept<T>(visitor: Visitor<T>): T;
     }

@@ -8,8 +8,13 @@ export default class Scanner {
   private readonly source: string;
   private readonly tokens: Token[] = [];
 
+  /** The start index of the current lexeme */
   private start = 0;
+
+  /** The index of the character we are at in the source */
   private current = 0;
+
+  /** The line number we are on in the source */
   private line = 1;
 
   private static keywords: { [index: string]: TokenType } = {
@@ -99,7 +104,7 @@ export default class Scanner {
         } else if (this.match("*")) {
           while (this.peek() !== "*" && this.peekNext() !== "/" && !this.isAtEnd()) this.advance();
 
-          // consume ending */
+          // consume ending
           this.advance();
           this.advance();
         } else {
