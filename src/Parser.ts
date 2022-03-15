@@ -2,6 +2,7 @@ import { Binary, Expr, Grouping, Literal, Unary } from "./Expr";
 import Token from "./Token";
 import { TokenType } from "./TokenType";
 import Lox from "./Lox";
+import ParseError from "./errors/ParseError";
 
 export default class Parser {
   private readonly tokens: Token[];
@@ -204,5 +205,3 @@ export default class Parser {
     }
   }
 }
-
-class ParseError extends Error {}

@@ -1,13 +1,18 @@
 import { read, readFileSync } from "fs";
 import { createInterface } from "readline";
 import AstPrinter from "./AstPrinter";
+import RuntimeError from "./errors/RuntimeError";
+import Interpreter from "./Interpreter";
 import Parser from "./Parser";
 import Scanner from "./Scanner";
 import Token from "./Token";
 import { TokenType } from "./TokenType";
 
 export default class Lox {
+  static readonly interpreter = new Interpreter();
+
   static hadError = false;
+  static hadRuntimeError = false;
 
   static main(args: string[]) {
     if (args.length > 1) {
@@ -26,6 +31,7 @@ export default class Lox {
 
     // indicate an error in the exit code
     if (Lox.hadError) process.exit(65);
+    if (Lox.hadRuntimeError) process.exit(70);
   }
 
   private static async runPrompt() {
@@ -64,8 +70,10 @@ export default class Lox {
 
     if (this.hadError) return;
 
-    console.log(expression);
-    console.log(new AstPrinter().print(expression));
+    this.interpreter.interpret(expression);
+
+    // console.log(expression);
+    // console.log(new AstPrinter().print(expression));
   }
 
   static error(token: Token, message: string) {
@@ -74,6 +82,11 @@ export default class Lox {
     } else {
       this.report(token.line, `at '${token.lexeme}'`, message);
     }
+  }
+
+  static runtimeError(error: RuntimeError) {
+    console.error(`[line ${error.token.line}]: ${error.message}`);
+    this.hadRuntimeError = true;
   }
 
   private static report(line: number, where: string, message: string) {
