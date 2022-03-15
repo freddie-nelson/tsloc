@@ -1,4 +1,4 @@
-print "Comment after me" // i am a Comment
+print "Comment after me"; // i am a Comment
 
 /* 
 I am a multiline Comment
@@ -6,6 +6,6 @@ I am a multiline Comment
 wow
 */
 
-// print "You won't see me"
+// print "You won't see me"; 
 
-print "Hey! We made it!"
+print "Hey! We made it!";

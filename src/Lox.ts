@@ -1,4 +1,4 @@
-import { read, readFileSync } from "fs";
+import { readFileSync } from "fs";
 import { createInterface } from "readline";
 import AstPrinter from "./AstPrinter";
 import RuntimeError from "./errors/RuntimeError";
@@ -49,6 +49,11 @@ export default class Lox {
             resolve(false);
           }
 
+          // hacky way to print result if only expression is typed (not bulletproof)
+          // if (!line.endsWith(";")) {
+          //   line = `print ${line};`;
+          // }
+
           Lox.run(line);
           Lox.hadError = false;
           resolve(true);
@@ -66,11 +71,11 @@ export default class Lox {
     const tokens: Token[] = scanner.scanTokens();
 
     const parser = new Parser(tokens);
-    const expression = parser.parse();
+    const statements = parser.parse();
 
     if (this.hadError) return;
 
-    this.interpreter.interpret(expression);
+    this.interpreter.interpret(statements);
 
     // console.log(expression);
     // console.log(new AstPrinter().print(expression));

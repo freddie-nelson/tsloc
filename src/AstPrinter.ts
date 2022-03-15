@@ -1,8 +1,12 @@
-import { Binary, Expr, Grouping, Literal, Unary, Visitor } from "./Expr";
+import { Assign, Binary, Expr, Grouping, Literal, Unary, Variable, Visitor } from "./Expr";
 
 export default class AstPrinter implements Visitor<string> {
   print(expr: Expr): string {
     return expr.accept(this);
+  }
+
+  visitAssignExpr(expr: Assign): string {
+    return this.parenthesize(expr.name.lexeme, expr.value);
   }
 
   visitBinaryExpr(expr: Binary): string {
@@ -20,6 +24,10 @@ export default class AstPrinter implements Visitor<string> {
 
   visitUnaryExpr(expr: Unary): string {
     return this.parenthesize(expr.operator.lexeme, expr.right);
+  }
+
+  visitVariableExpr(expr: Variable): string {
+    return expr.name.lexeme;
   }
 
   private parenthesize(name: string, ...exprs: Expr[]) {

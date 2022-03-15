@@ -1,19 +1,30 @@
+import Environment from "./Environment";
 import RuntimeError from "./errors/RuntimeError";
-import { Binary, Expr, Grouping, Literal, Unary, Visitor } from "./Expr";
+import { Assign, Binary, Expr, Grouping, Literal, Unary, Variable, Visitor as ExprVistor } from "./Expr";
 import Lox from "./Lox";
+import { Block, Expression, Stmt, Var, Visitor as StmtVisitor } from "./Stmt";
 import Token from "./Token";
 import { TokenType } from "./TokenType";
 
-export default class Interpreter implements Visitor<Object> {
+export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void> {
+  private environment = new Environment();
+
   constructor() {}
 
-  interpret(expr: Expr) {
+  interpret(statements: Stmt[]) {
     try {
-      const value = this.evaluate(expr);
-      console.log(this.stringify(value));
+      for (const s of statements) {
+        this.execute(s);
+      }
     } catch (error) {
       Lox.runtimeError(<RuntimeError>error);
     }
+  }
+
+  visitAssignExpr(expr: Assign): Object {
+    const value = this.evaluate(expr.value);
+    this.environment.assign(expr.name, value);
+    return value;
   }
 
   visitBinaryExpr(expr: Binary): Object {
@@ -90,8 +101,52 @@ export default class Interpreter implements Visitor<Object> {
     return null;
   }
 
+  visitVariableExpr(expr: Variable) {
+    return this.environment.get(expr.name);
+  }
+
   private evaluate(expr: Expr) {
     return expr.accept(this);
+  }
+
+  visitExpressionStmt(stmt: Expression) {
+    this.evaluate(stmt.expression);
+  }
+
+  visitPrintStmt(stmt: Expression) {
+    const value = this.evaluate(stmt.expression);
+    console.log(this.stringify(value));
+  }
+
+  visitVarStmt(stmt: Var) {
+    let value = null;
+    if (stmt.initializer !== undefined) {
+      value = this.evaluate(stmt.initializer);
+    }
+
+    this.environment.define(stmt.name.lexeme, value);
+  }
+
+  visitBlockStmt(stmt: Block) {
+    this.executeBlock(stmt.statements, new Environment(this.environment));
+  }
+
+  private execute(stmt: Stmt) {
+    return stmt.accept(this);
+  }
+
+  private executeBlock(statements: Stmt[], environment: Environment) {
+    const previous = this.environment;
+
+    try {
+      this.environment = environment;
+
+      for (const s of statements) {
+        this.execute(s);
+      }
+    } finally {
+      this.environment = previous;
+    }
   }
 
   private isTruthy(obj: Object): boolean {
