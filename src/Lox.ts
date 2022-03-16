@@ -90,13 +90,13 @@ export default class Lox {
   }
 
   static runtimeError(error: RuntimeError) {
-    console.error(`[line ${error.token.line}]: ${error.message}`);
+    console.error(`[line ${error.token.line}] RuntimeError: ${error.message}`);
     this.hadRuntimeError = true;
   }
 
   private static report(line: number, where: string, message: string) {
     console.error(`[line ${line}] Error ${where}: ${message}`);
-    Lox.hadError = true;
+    this.hadError = true;
   }
 }
 

@@ -1,8 +1,18 @@
 import Environment from "./Environment";
 import RuntimeError from "./errors/RuntimeError";
-import { Assign, Binary, Expr, Grouping, Literal, Unary, Variable, Visitor as ExprVistor } from "./Expr";
+import {
+  Assign,
+  Binary,
+  Expr,
+  Grouping,
+  Literal,
+  Logical,
+  Unary,
+  Variable,
+  Visitor as ExprVistor,
+} from "./Expr";
 import Lox from "./Lox";
-import { Block, Expression, Stmt, Var, Visitor as StmtVisitor } from "./Stmt";
+import { Block, Expression, If, Stmt, Var, Visitor as StmtVisitor, While } from "./Stmt";
 import Token from "./Token";
 import { TokenType } from "./TokenType";
 
@@ -25,6 +35,18 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
     const value = this.evaluate(expr.value);
     this.environment.assign(expr.name, value);
     return value;
+  }
+
+  visitLogicalExpr(expr: Logical): Object {
+    const left = this.evaluate(expr.left);
+
+    if (expr.operator.type === TokenType.OR) {
+      if (this.isTruthy(left)) return left;
+    } else {
+      if (!this.isTruthy(left)) return left;
+    }
+
+    return this.evaluate(expr.right);
   }
 
   visitBinaryExpr(expr: Binary): Object {
@@ -129,6 +151,21 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
 
   visitBlockStmt(stmt: Block) {
     this.executeBlock(stmt.statements, new Environment(this.environment));
+  }
+
+  visitIfStmt(stmt: If) {
+    const enter = this.isTruthy(this.evaluate(stmt.condition));
+    if (enter) {
+      this.execute(stmt.thenBranch);
+    } else if (stmt.elseBranch) {
+      this.execute(stmt.elseBranch);
+    }
+  }
+
+  visitWhileStmt(stmt: While) {
+    while (this.isTruthy(this.evaluate(stmt.condition))) {
+      this.execute(stmt.body);
+    }
   }
 
   private execute(stmt: Stmt) {
