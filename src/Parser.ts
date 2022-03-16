@@ -3,17 +3,20 @@ import Token from "./Token";
 import { TokenType } from "./TokenType";
 import Lox from "./Lox";
 import ParseError from "./errors/ParseError";
-import { Block, Expression, If, Print, Stmt, Var, While } from "./Stmt";
+import { Block, Break, Continue, Expression, If, Print, Stmt, Var, While } from "./Stmt";
 
 export default class Parser {
   private readonly tokens: Token[];
   private current = 0;
+
+  private loopDepth = 0;
 
   constructor(tokens: Token[]) {
     this.tokens = tokens;
   }
 
   parse(): Stmt[] {
+    // construct ast
     const statements: Stmt[] = [];
     while (!this.isAtEnd()) {
       statements.push(this.declaration());
@@ -49,6 +52,8 @@ export default class Parser {
     if (this.match(TokenType.IF)) return this.ifStatement();
     if (this.match(TokenType.WHILE)) return this.whileStatement();
     if (this.match(TokenType.FOR)) return this.forStatement();
+    if (this.match(TokenType.BREAK)) return this.breakStatement();
+    if (this.match(TokenType.CONTINUE)) return this.continueStatement();
     if (this.match(TokenType.LEFT_BRACE)) return new Block(this.block());
     if (this.match(TokenType.PRINT)) return this.printStatement();
 
@@ -73,7 +78,9 @@ export default class Parser {
     const condition = this.expression();
     this.consume(TokenType.RIGHT_PAREN, "Expect ')' after 'while' condition.");
 
+    this.loopDepth++;
     const body = this.statement();
+    this.loopDepth--;
 
     return new While(condition, body);
   }
@@ -100,7 +107,9 @@ export default class Parser {
     }
     this.consume(TokenType.RIGHT_PAREN, "Expect ')' after for clauses.");
 
+    this.loopDepth++;
     let body = this.statement();
+    this.loopDepth--;
 
     // wrap for loop body in a block with increment at end
     if (increment) {
@@ -110,7 +119,7 @@ export default class Parser {
     // create while loop with condition
     // if no condition was given then create true literal as condition (infinite loop)
     if (!condition) condition = new Literal(true);
-    body = new While(condition, body);
+    body = new While(condition, body, true, !!increment);
 
     // wrap while loop in block with initializer
     if (initializer) {
@@ -118,6 +127,22 @@ export default class Parser {
     }
 
     return body;
+  }
+
+  private breakStatement(): Break {
+    if (this.loopDepth === 0) this.error(this.previous(), "Break statement not within a loop.");
+
+    this.consume(TokenType.SEMICOLON, "Expect ';' after value.");
+
+    return new Break();
+  }
+
+  private continueStatement(): Continue {
+    if (this.loopDepth === 0) this.error(this.previous(), "Continue statement not within a loop.");
+
+    this.consume(TokenType.SEMICOLON, "Expect ';' after value.");
+
+    return new Continue();
   }
 
   private block(): Stmt[] {
@@ -354,7 +379,7 @@ export default class Parser {
 
   private error(token: Token, msg: string): ParseError {
     Lox.error(token, msg);
-    return new ParseError();
+    return new ParseError(msg);
   }
 
   private synchronize() {

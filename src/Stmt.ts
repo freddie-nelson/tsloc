@@ -12,6 +12,8 @@ export interface Visitor<T> {
   visitPrintStmt(stmt: Print): T;
   visitVarStmt(stmt: Var): T;
   visitWhileStmt(stmt: While): T;
+  visitBreakStmt(stmt: Break): T;
+  visitContinueStmt(stmt: Continue): T;
 }
 
 export class Block extends Stmt {
@@ -89,13 +91,39 @@ export class While extends Stmt {
   readonly condition: Expr;
   readonly body: Stmt;
 
-  constructor(condition: Expr, body: Stmt) {
+  readonly isFor: boolean;
+  readonly hasIncrement: boolean;
+
+  constructor(condition: Expr, body: Stmt, isFor = false, hasIncrement = false) {
     super();
     this.condition = condition;
     this.body = body;
+
+    this.isFor = isFor;
+    this.hasIncrement = hasIncrement;
   }
 
   accept<T>(visitor: Visitor<T>): T {
     return visitor.visitWhileStmt(this);
+  }
+}
+
+export class Break extends Stmt {
+  constructor() {
+    super();
+  }
+
+  accept<T>(visitor: Visitor<T>): T {
+    return visitor.visitBreakStmt(this);
+  }
+}
+
+export class Continue extends Stmt {
+  constructor() {
+    super();
+  }
+
+  accept<T>(visitor: Visitor<T>): T {
+    return visitor.visitContinueStmt(this);
   }
 }

@@ -34,6 +34,8 @@ export default class Scanner {
     true: TokenType.TRUE,
     var: TokenType.VAR,
     while: TokenType.WHILE,
+    break: TokenType.BREAK,
+    continue: TokenType.CONTINUE,
   };
 
   constructor(source: string) {

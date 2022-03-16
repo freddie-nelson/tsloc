@@ -1,4 +1,6 @@
 import Environment from "./Environment";
+import BreakError from "./errors/BreakError";
+import ContinueError from "./errors/ContinueError";
 import RuntimeError from "./errors/RuntimeError";
 import {
   Assign,
@@ -12,7 +14,7 @@ import {
   Visitor as ExprVistor,
 } from "./Expr";
 import Lox from "./Lox";
-import { Block, Expression, If, Stmt, Var, Visitor as StmtVisitor, While } from "./Stmt";
+import { Block, Break, Expression, If, Stmt, Var, Visitor as StmtVisitor, While } from "./Stmt";
 import Token from "./Token";
 import { TokenType } from "./TokenType";
 
@@ -164,8 +166,32 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
 
   visitWhileStmt(stmt: While) {
     while (this.isTruthy(this.evaluate(stmt.condition))) {
-      this.execute(stmt.body);
+      try {
+        this.execute(stmt.body);
+      } catch (error) {
+        if (error instanceof BreakError) {
+          break;
+        } else if (error instanceof ContinueError) {
+          // execute increment if loop is really a for loop
+          if (stmt.isFor && stmt.hasIncrement) {
+            const block = <Block>stmt.body;
+            this.execute(block.statements[1]);
+          }
+
+          continue;
+        } else {
+          throw error;
+        }
+      }
     }
+  }
+
+  visitBreakStmt(stmt: Break) {
+    throw new BreakError();
+  }
+
+  visitContinueStmt(stmt: Break) {
+    throw new ContinueError();
   }
 
   private execute(stmt: Stmt) {

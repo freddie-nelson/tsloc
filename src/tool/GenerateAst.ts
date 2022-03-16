@@ -27,6 +27,8 @@ export default class GenerateAst {
       "Print      :: expression: Expr",
       "Var        :: name: Token, initializer: Expr | undefined",
       "While      :: condition: Expr, body: Stmt",
+      "Break      ::",
+      "Continue   ::",
     ]);
   }
 
@@ -64,7 +66,9 @@ export default class GenerateAst {
   }
 
   private static defineType(baseName: string, className: string, fields: string): string {
-    const props = fields.split(", ").map((f) => `readonly ${f.replace(",", ";")}`);
+    let props = fields.split(", ").map((f) => `readonly ${f.replace(",", ";")}`);
+    if (!fields) props = [];
+
     let data = `
       export class ${className} extends ${baseName} {
         ${props.join("\n")}
