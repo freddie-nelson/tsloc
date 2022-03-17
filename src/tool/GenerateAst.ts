@@ -24,12 +24,14 @@ export default class GenerateAst {
     this.defineAst(outputDir, "Stmt", [
       "Block      :: statements: Stmt[]",
       "Expression :: expression: Expr",
+      "Function   :: name: Token, params: Token[], body: Stmt[]",
+      "Return     :: keyword: Token, value: Expr | undefined",
       "If         :: condition: Expr, thenBranch: Stmt, elseBranch: Stmt | undefined",
       "Print      :: expression: Expr",
       "Var        :: name: Token, initializer: Expr | undefined",
       "While      :: condition: Expr, body: Stmt, isFor: boolean = false, hasIncrement: boolean = false",
-      "Break      ::",
-      "Continue   ::",
+      "Break      :: keyword: Token",
+      "Continue   :: keyword: Token",
     ]);
   }
 

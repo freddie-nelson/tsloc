@@ -1,4 +1,4 @@
-import { Assign, Binary, Expr, Grouping, Literal, Logical, Unary, Variable, Visitor } from "./Expr";
+import { Assign, Binary, Call, Expr, Grouping, Literal, Logical, Unary, Variable, Visitor } from "./Expr";
 
 export default class AstPrinter implements Visitor<string> {
   print(expr: Expr): string {
@@ -15,6 +15,10 @@ export default class AstPrinter implements Visitor<string> {
 
   visitBinaryExpr(expr: Binary): string {
     return this.parenthesize(expr.operator.lexeme, expr.left, expr.right);
+  }
+
+  visitCallExpr(expr: Call): string {
+    return "CallExpression";
   }
 
   visitGroupingExpr(expr: Grouping): string {

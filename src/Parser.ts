@@ -1,9 +1,9 @@
-import { Assign, Binary, Expr, Grouping, Literal, Logical, Unary, Variable } from "./Expr";
+import { Assign, Binary, Call, Expr, Grouping, Literal, Logical, Unary, Variable } from "./Expr";
 import Token from "./Token";
 import { TokenType } from "./TokenType";
 import Lox from "./Lox";
 import ParseError from "./errors/ParseError";
-import { Block, Break, Continue, Expression, If, Print, Stmt, Var, While } from "./Stmt";
+import { Block, Break, Continue, Expression, Function, If, Print, Return, Stmt, Var, While } from "./Stmt";
 
 export default class Parser {
   private readonly tokens: Token[];
@@ -27,6 +27,7 @@ export default class Parser {
 
   private declaration(): Stmt {
     try {
+      if (this.match(TokenType.FUN)) return this.function("function");
       if (this.match(TokenType.VAR)) return this.varDeclaration();
 
       return this.statement();
@@ -54,6 +55,7 @@ export default class Parser {
     if (this.match(TokenType.FOR)) return this.forStatement();
     if (this.match(TokenType.BREAK)) return this.breakStatement();
     if (this.match(TokenType.CONTINUE)) return this.continueStatement();
+    if (this.match(TokenType.RETURN)) return this.returnStatement();
     if (this.match(TokenType.LEFT_BRACE)) return new Block(this.block());
     if (this.match(TokenType.PRINT)) return this.printStatement();
 
@@ -130,19 +132,33 @@ export default class Parser {
   }
 
   private breakStatement(): Break {
-    if (this.loopDepth === 0) this.error(this.previous(), "Break statement not within a loop.");
+    const keyword = this.previous();
+    if (this.loopDepth === 0) this.error(keyword, "Break statement not within a loop.");
 
-    this.consume(TokenType.SEMICOLON, "Expect ';' after value.");
+    this.consume(TokenType.SEMICOLON, "Expect ';' after break.");
 
-    return new Break();
+    return new Break(keyword);
   }
 
   private continueStatement(): Continue {
-    if (this.loopDepth === 0) this.error(this.previous(), "Continue statement not within a loop.");
+    const keyword = this.previous();
+    if (this.loopDepth === 0) this.error(keyword, "Continue statement not within a loop.");
 
-    this.consume(TokenType.SEMICOLON, "Expect ';' after value.");
+    this.consume(TokenType.SEMICOLON, "Expect ';' after continue.");
 
-    return new Continue();
+    return new Continue(keyword);
+  }
+
+  private returnStatement(): Return {
+    const keyword = this.previous();
+    let value: Expr;
+    if (!this.check(TokenType.SEMICOLON)) {
+      value = this.expression();
+    }
+
+    this.consume(TokenType.SEMICOLON, "Expect ';' after return value.");
+
+    return new Return(keyword, value);
   }
 
   private block(): Stmt[] {
@@ -169,6 +185,31 @@ export default class Parser {
     this.consume(TokenType.SEMICOLON, "Expect ';' after expression.");
 
     return new Expression(expr);
+  }
+
+  private function(kind: string): Function {
+    // parse identifer
+    const name = this.consume(TokenType.IDENTIFIER, `Expect ${kind} name.`);
+
+    // parse parameter list
+    this.consume(TokenType.LEFT_PAREN, `Expect '(' after ${kind} name.`);
+
+    const params: Token[] = [];
+    if (!this.check(TokenType.RIGHT_PAREN)) {
+      do {
+        if (params.length >= 255) this.error(this.peek(), "Can't have more than 255 parameters.");
+
+        params.push(this.consume(TokenType.IDENTIFIER, "Expect parameter name."));
+      } while (this.match(TokenType.COMMA));
+    }
+
+    this.consume(TokenType.RIGHT_PAREN, "Expect ')' after parameters.");
+
+    // parse body
+    this.consume(TokenType.LEFT_BRACE, `Expect '{' before ${kind} body.`);
+    const body = this.block();
+
+    return new Function(name, params, body);
   }
 
   private expression(): Expr {
@@ -274,7 +315,36 @@ export default class Parser {
       return new Unary(operator, right);
     }
 
-    return this.primary();
+    return this.call();
+  }
+
+  private call(): Expr {
+    let expr = this.primary();
+
+    while (true) {
+      if (this.match(TokenType.LEFT_PAREN)) {
+        expr = this.finishCall(expr);
+      } else {
+        break;
+      }
+    }
+
+    return expr;
+  }
+
+  private finishCall(callee: Expr): Expr {
+    const args: Expr[] = [];
+    if (!this.check(TokenType.RIGHT_PAREN)) {
+      do {
+        if (args.length >= 255) this.error(this.peek(), "Can't have more than 255 arguments.");
+
+        args.push(this.expression());
+      } while (this.match(TokenType.COMMA));
+    }
+
+    const paren = this.consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments.");
+
+    return new Call(callee, paren, args);
   }
 
   private primary(): Expr {

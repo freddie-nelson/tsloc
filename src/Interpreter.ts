@@ -1,10 +1,14 @@
+import Callable, { isCallable } from "./Callable";
+import CallableFunction from "./CallableFunction";
 import Environment from "./Environment";
 import BreakError from "./errors/BreakError";
 import ContinueError from "./errors/ContinueError";
+import ReturnError from "./errors/ReturnError";
 import RuntimeError from "./errors/RuntimeError";
 import {
   Assign,
   Binary,
+  Call,
   Expr,
   Grouping,
   Literal,
@@ -14,14 +18,38 @@ import {
   Visitor as ExprVistor,
 } from "./Expr";
 import Lox from "./Lox";
-import { Block, Break, Expression, If, Stmt, Var, Visitor as StmtVisitor, While } from "./Stmt";
+import {
+  Block,
+  Break,
+  Expression,
+  Function,
+  If,
+  Return,
+  Stmt,
+  Var,
+  Visitor as StmtVisitor,
+  While,
+} from "./Stmt";
 import Token from "./Token";
 import { TokenType } from "./TokenType";
 
 export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void> {
-  private environment = new Environment();
+  readonly globals = new Environment();
+  private environment = this.globals;
 
-  constructor() {}
+  constructor() {
+    this.globals.define("clock", <Callable>{
+      arity() {
+        return 0;
+      },
+      call(interpreter, args) {
+        return Date.now() / 1000;
+      },
+      toString() {
+        return "<native fn>";
+      },
+    });
+  }
 
   interpret(statements: Stmt[]) {
     try {
@@ -103,6 +131,22 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
     return null;
   }
 
+  visitCallExpr(expr: Call) {
+    const callee = this.evaluate(expr.callee);
+    const args: Object[] = expr.args.map((a) => this.evaluate(a));
+
+    if (!isCallable(callee)) {
+      throw new RuntimeError(expr.paren, "Can only call functions and classes.");
+    }
+
+    const func = <Callable>callee;
+    if (args.length !== func.arity()) {
+      throw new RuntimeError(expr.paren, `Expected ${func.arity()} arguments but got ${args.length}.`);
+    }
+
+    return func.call(this, args);
+  }
+
   visitGroupingExpr(expr: Grouping): Object {
     return this.evaluate(expr.expression);
   }
@@ -135,6 +179,18 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
 
   visitExpressionStmt(stmt: Expression) {
     this.evaluate(stmt.expression);
+  }
+
+  visitFunctionStmt(stmt: Function) {
+    const func = new CallableFunction(stmt, this.environment);
+    this.environment.define(stmt.name.lexeme, func);
+  }
+
+  visitReturnStmt(stmt: Return) {
+    let value: Object = null;
+    if (stmt.value) value = this.evaluate(stmt.value);
+
+    throw new ReturnError(value);
   }
 
   visitPrintStmt(stmt: Expression) {
@@ -194,11 +250,11 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
     throw new ContinueError();
   }
 
-  private execute(stmt: Stmt) {
+  execute(stmt: Stmt) {
     return stmt.accept(this);
   }
 
-  private executeBlock(statements: Stmt[], environment: Environment) {
+  executeBlock(statements: Stmt[], environment: Environment) {
     const previous = this.environment;
 
     try {
