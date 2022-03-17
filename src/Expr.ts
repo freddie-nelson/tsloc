@@ -1,5 +1,4 @@
 import Token from "./Token";
-
 export abstract class Expr {
   abstract accept<T>(visitor: Visitor<T>): T;
 }
@@ -8,6 +7,7 @@ export interface Visitor<T> {
   visitAssignExpr(expr: Assign): T;
   visitLogicalExpr(expr: Logical): T;
   visitBinaryExpr(expr: Binary): T;
+  visitCallExpr(expr: Call): T;
   visitGroupingExpr(expr: Grouping): T;
   visitLiteralExpr(expr: Literal): T;
   visitUnaryExpr(expr: Unary): T;
@@ -60,6 +60,23 @@ export class Binary extends Expr {
 
   accept<T>(visitor: Visitor<T>): T {
     return visitor.visitBinaryExpr(this);
+  }
+}
+
+export class Call extends Expr {
+  readonly callee: Expr;
+  readonly paren: Token;
+  readonly args: Expr[];
+
+  constructor(callee: Expr, paren: Token, args: Expr[]) {
+    super();
+    this.callee = callee;
+    this.paren = paren;
+    this.args = args;
+  }
+
+  accept<T>(visitor: Visitor<T>): T {
+    return visitor.visitCallExpr(this);
   }
 }
 
