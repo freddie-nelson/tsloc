@@ -1,4 +1,15 @@
-import { Assign, Binary, Call, Expr, Grouping, Literal, Logical, Unary, Variable } from "./Expr";
+import {
+  Assign,
+  Binary,
+  Call,
+  Expr,
+  Grouping,
+  Literal,
+  Logical,
+  Unary,
+  Variable,
+  FunctionExpr,
+} from "./Expr";
 import Token from "./Token";
 import { TokenType } from "./TokenType";
 import Lox from "./Lox";
@@ -187,13 +198,16 @@ export default class Parser {
     return new Expression(expr);
   }
 
-  private function(kind: string): Function {
-    // parse identifer
-    const name = this.consume(TokenType.IDENTIFIER, `Expect ${kind} name.`);
-
+  /**
+   * Parses a functions parameters list.
+   *
+   * Expects the {@link TokenType.LEFT_PAREN} to already be consumed.
+   *
+   * @param kind The kind of function ("function" or "method")
+   * @returns The list of parameters
+   */
+  private parameters(kind: string): Token[] {
     // parse parameter list
-    this.consume(TokenType.LEFT_PAREN, `Expect '(' after ${kind} name.`);
-
     const params: Token[] = [];
     if (!this.check(TokenType.RIGHT_PAREN)) {
       do {
@@ -204,6 +218,17 @@ export default class Parser {
     }
 
     this.consume(TokenType.RIGHT_PAREN, "Expect ')' after parameters.");
+
+    return params;
+  }
+
+  private function(kind: string): Function {
+    // parse identifer
+    const name = this.consume(TokenType.IDENTIFIER, `Expect ${kind} name.`);
+
+    // parse parameters
+    this.consume(TokenType.LEFT_PAREN, `Expect '(' after ${kind} name.`);
+    const params = this.parameters(kind);
 
     // parse body
     this.consume(TokenType.LEFT_BRACE, `Expect '{' before ${kind} body.`);
@@ -347,12 +372,26 @@ export default class Parser {
     return new Call(callee, paren, args);
   }
 
+  private functionExpression() {
+    // parse parameter list
+    this.consume(TokenType.LEFT_PAREN, `Expect '(' after 'fun'.`);
+    const params = this.parameters("function");
+
+    // parse body
+    this.consume(TokenType.LEFT_BRACE, `Expect '{' before function body.`);
+    const body = this.block();
+
+    return new FunctionExpr(params, body);
+  }
+
   private primary(): Expr {
     if (this.match(TokenType.FALSE)) return new Literal(false);
     if (this.match(TokenType.TRUE)) return new Literal(true);
     if (this.match(TokenType.NIL)) return new Literal(null);
 
     if (this.match(TokenType.NUMBER, TokenType.STRING)) return new Literal(this.previous().literal);
+
+    if (this.match(TokenType.FUN)) return this.functionExpression();
 
     if (this.match(TokenType.IDENTIFIER)) return new Variable(this.previous());
 

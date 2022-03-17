@@ -1,14 +1,15 @@
 import Callable from "./Callable";
 import Environment from "./Environment";
 import ReturnError from "./errors/ReturnError";
+import { FunctionExpr } from "./Expr";
 import Interpreter from "./Interpreter";
 import { Function } from "./Stmt";
 
 export default class CallableFunction implements Callable {
-  private readonly declaration: Function;
+  private readonly declaration: Function | FunctionExpr;
   private readonly closure: Environment;
 
-  constructor(declaration: Function, closure: Environment) {
+  constructor(declaration: Function | FunctionExpr, closure: Environment) {
     this.declaration = declaration;
     this.closure = closure;
   }
@@ -35,6 +36,6 @@ export default class CallableFunction implements Callable {
   }
 
   toString() {
-    return `<fn ${this.declaration.name.lexeme}>`;
+    return `<fn ${this.declaration instanceof Function ? this.declaration.name.lexeme : "<expr>"}>`;
   }
 }

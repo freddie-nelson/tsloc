@@ -1,6 +1,5 @@
 import Token from "./Token";
 import { Expr } from "./Expr";
-
 export abstract class Stmt {
   abstract accept<T>(visitor: Visitor<T>): T;
 }

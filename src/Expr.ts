@@ -1,4 +1,6 @@
 import Token from "./Token";
+import { Stmt } from "./Stmt";
+
 export abstract class Expr {
   abstract accept<T>(visitor: Visitor<T>): T;
 }
@@ -12,6 +14,7 @@ export interface Visitor<T> {
   visitLiteralExpr(expr: Literal): T;
   visitUnaryExpr(expr: Unary): T;
   visitVariableExpr(expr: Variable): T;
+  visitFunctionExprExpr(expr: FunctionExpr): T;
 }
 
 export class Assign extends Expr {
@@ -131,5 +134,20 @@ export class Variable extends Expr {
 
   accept<T>(visitor: Visitor<T>): T {
     return visitor.visitVariableExpr(this);
+  }
+}
+
+export class FunctionExpr extends Expr {
+  readonly params: Token[];
+  readonly body: Stmt[];
+
+  constructor(params: Token[], body: Stmt[]) {
+    super();
+    this.params = params;
+    this.body = body;
+  }
+
+  accept<T>(visitor: Visitor<T>): T {
+    return visitor.visitFunctionExprExpr(this);
   }
 }

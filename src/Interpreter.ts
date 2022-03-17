@@ -10,6 +10,7 @@ import {
   Binary,
   Call,
   Expr,
+  FunctionExpr,
   Grouping,
   Literal,
   Logical,
@@ -171,6 +172,10 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
 
   visitVariableExpr(expr: Variable) {
     return this.environment.get(expr.name);
+  }
+
+  visitFunctionExprExpr(expr: FunctionExpr) {
+    return new CallableFunction(expr, this.environment);
   }
 
   private evaluate(expr: Expr) {

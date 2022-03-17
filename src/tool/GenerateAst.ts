@@ -11,14 +11,15 @@ export default class GenerateAst {
     const outputDir = args[0];
 
     this.defineAst(outputDir, "Expr", [
-      "Assign   :: name: Token, value: Expr",
-      "Logical  :: left: Expr, operator: Token, right: Expr",
-      "Binary   :: left: Expr, operator: Token, right: Expr",
-      "Call     :: callee: Expr, paren: Token, args: Expr[]",
-      "Grouping :: expression: Expr",
-      "Literal  :: value: any",
-      "Unary    :: operator: Token, right: Expr",
-      "Variable :: name: Token",
+      "Assign       :: name: Token, value: Expr",
+      "Logical      :: left: Expr, operator: Token, right: Expr",
+      "Binary       :: left: Expr, operator: Token, right: Expr",
+      "Call         :: callee: Expr, paren: Token, args: Expr[]",
+      "Grouping     :: expression: Expr",
+      "Literal      :: value: any",
+      "Unary        :: operator: Token, right: Expr",
+      "Variable     :: name: Token",
+      "FunctionExpr :: params: Token[], body: Stmt[]",
     ]);
 
     this.defineAst(outputDir, "Stmt", [
@@ -40,6 +41,7 @@ export default class GenerateAst {
     const data = `
     import Token from "./Token";
     ${baseName !== "Expr" ? 'import { Expr } from "./Expr"' : ""};
+    ${baseName !== "Stmt" ? 'import { Stmt } from "./Stmt"' : ""};
 
     export abstract class ${baseName} {
       abstract accept<T>(visitor: Visitor<T>): T;
