@@ -4,7 +4,7 @@ import Token from "./Token";
 export default class Environment {
   readonly enclosing?: Environment;
 
-  private readonly values = new Map<string, Object>();
+  readonly values = new Map<string, Object>();
 
   /**
    * Map of variables in environment which have not been assigned a value yet.
@@ -39,6 +39,10 @@ export default class Environment {
     throw new RuntimeError(name, `Undefined variable '${name.lexeme}'.`);
   }
 
+  getAt(distance: number, name: Token) {
+    return this.ancestor(distance).get(name);
+  }
+
   assign(name: Token, value: Object): void {
     if (this.values.has(name.lexeme)) {
       if (this.nonAssignedVariables.has(name.lexeme)) this.nonAssignedVariables.delete(name.lexeme);
@@ -50,5 +54,18 @@ export default class Environment {
     if (this.enclosing) return this.enclosing.assign(name, value);
 
     throw new RuntimeError(name, `Undefined variable '${name.lexeme}'.`);
+  }
+
+  assignAt(distance: number, name: Token, value: Object) {
+    this.ancestor(distance).assign(name, value);
+  }
+
+  ancestor(distance: number) {
+    let env: Environment = this;
+    for (let i = 0; i < distance; i++) {
+      env = env.enclosing;
+    }
+
+    return env;
   }
 }

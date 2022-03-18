@@ -4,6 +4,7 @@ import AstPrinter from "./AstPrinter";
 import RuntimeError from "./errors/RuntimeError";
 import Interpreter from "./Interpreter";
 import Parser from "./Parser";
+import Resolver from "./Resolver";
 import Scanner from "./Scanner";
 import Token from "./Token";
 import { TokenType } from "./TokenType";
@@ -73,6 +74,13 @@ export default class Lox {
     const parser = new Parser(tokens);
     const statements = parser.parse();
 
+    // stop if there was a syntax error
+    if (this.hadError) return;
+
+    const resolver = new Resolver(this.interpreter);
+    resolver.resolve(statements);
+
+    // stop if there was a resolution error
     if (this.hadError) return;
 
     this.interpreter.interpret(statements);

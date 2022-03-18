@@ -36,6 +36,8 @@ import { TokenType } from "./TokenType";
 
 export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void> {
   readonly globals = new Environment();
+  private readonly locals: Map<Expr, number> = new Map();
+
   private environment = this.globals;
 
   constructor() {
@@ -64,7 +66,14 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
 
   visitAssignExpr(expr: Assign): Object {
     const value = this.evaluate(expr.value);
-    this.environment.assign(expr.name, value);
+
+    const distance = this.locals.get(expr);
+    if (distance !== undefined) {
+      this.environment.assignAt(distance, expr.name, value);
+    } else {
+      this.globals.assign(expr.name, value);
+    }
+
     return value;
   }
 
@@ -171,7 +180,16 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
   }
 
   visitVariableExpr(expr: Variable) {
-    return this.environment.get(expr.name);
+    return this.lookUpVariable(expr.name, expr);
+  }
+
+  private lookUpVariable(name: Token, expr: Expr) {
+    const distance = this.locals.get(expr);
+    if (distance !== undefined) {
+      return this.environment.getAt(distance, name);
+    } else {
+      return this.globals.get(name);
+    }
   }
 
   visitFunctionExprExpr(expr: FunctionExpr) {
@@ -271,6 +289,10 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
     } finally {
       this.environment = previous;
     }
+  }
+
+  resolve(expr: Expr, depth: number) {
+    this.locals.set(expr, depth);
   }
 
   private isTruthy(obj: Object): boolean {

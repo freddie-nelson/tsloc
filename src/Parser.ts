@@ -20,8 +20,6 @@ export default class Parser {
   private readonly tokens: Token[];
   private current = 0;
 
-  private loopDepth = 0;
-
   constructor(tokens: Token[]) {
     this.tokens = tokens;
   }
@@ -91,9 +89,7 @@ export default class Parser {
     const condition = this.expression();
     this.consume(TokenType.RIGHT_PAREN, "Expect ')' after 'while' condition.");
 
-    this.loopDepth++;
     const body = this.statement();
-    this.loopDepth--;
 
     return new While(condition, body);
   }
@@ -120,9 +116,7 @@ export default class Parser {
     }
     this.consume(TokenType.RIGHT_PAREN, "Expect ')' after for clauses.");
 
-    this.loopDepth++;
     let body = this.statement();
-    this.loopDepth--;
 
     // wrap for loop body in a block with increment at end
     if (increment) {
@@ -144,8 +138,6 @@ export default class Parser {
 
   private breakStatement(): Break {
     const keyword = this.previous();
-    if (this.loopDepth === 0) this.error(keyword, "Break statement not within a loop.");
-
     this.consume(TokenType.SEMICOLON, "Expect ';' after break.");
 
     return new Break(keyword);
@@ -153,8 +145,6 @@ export default class Parser {
 
   private continueStatement(): Continue {
     const keyword = this.previous();
-    if (this.loopDepth === 0) this.error(keyword, "Continue statement not within a loop.");
-
     this.consume(TokenType.SEMICOLON, "Expect ';' after continue.");
 
     return new Continue(keyword);
@@ -203,10 +193,9 @@ export default class Parser {
    *
    * Expects the {@link TokenType.LEFT_PAREN} to already be consumed.
    *
-   * @param kind The kind of function ("function" or "method")
    * @returns The list of parameters
    */
-  private parameters(kind: string): Token[] {
+  private parameters(): Token[] {
     // parse parameter list
     const params: Token[] = [];
     if (!this.check(TokenType.RIGHT_PAREN)) {
@@ -228,7 +217,7 @@ export default class Parser {
 
     // parse parameters
     this.consume(TokenType.LEFT_PAREN, `Expect '(' after ${kind} name.`);
-    const params = this.parameters(kind);
+    const params = this.parameters();
 
     // parse body
     this.consume(TokenType.LEFT_BRACE, `Expect '{' before ${kind} body.`);
@@ -375,7 +364,7 @@ export default class Parser {
   private functionExpression() {
     // parse parameter list
     this.consume(TokenType.LEFT_PAREN, `Expect '(' after 'fun'.`);
-    const params = this.parameters("function");
+    const params = this.parameters();
 
     // parse body
     this.consume(TokenType.LEFT_BRACE, `Expect '{' before function body.`);
