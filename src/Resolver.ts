@@ -28,6 +28,13 @@ import {
   While,
 } from "./Stmt";
 import Token from "./Token";
+import { TokenType } from "./TokenType";
+
+export enum VariableState {
+  DECLARED,
+  DEFINED,
+  USED,
+}
 
 export enum FunctionType {
   NONE,
@@ -48,7 +55,7 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
    * The value (true, false) associated with each key in a map represents
    * wether or not we have finished resolving that variable's initializer.
    */
-  private readonly scopes: Map<string, boolean>[] = [];
+  private readonly scopes: Map<string, VariableState>[] = [];
 
   private currentFunction: FunctionType = FunctionType.NONE;
   private currentLoop: LoopType = LoopType.NONE;
@@ -124,7 +131,10 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
   }
 
   visitVariableExpr(expr: Variable) {
-    if (this.scopes.length !== 0 && this.scopes[this.scopes.length - 1].get(expr.name.lexeme) === false)
+    if (
+      this.scopes.length !== 0 &&
+      this.scopes[this.scopes.length - 1].get(expr.name.lexeme) === VariableState.DECLARED
+    )
       Lox.error(expr.name, "Can't read local variable in it's own initializer.");
 
     this.resolveLocal(expr, expr.name);
@@ -197,7 +207,15 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
   }
 
   private endScope() {
-    this.scopes.pop();
+    const old = this.scopes.pop();
+    this.checkUnusedVariables(old);
+  }
+
+  private checkUnusedVariables(scope: Map<string, VariableState>) {
+    for (const [name, state] of scope.entries()) {
+      if (state !== VariableState.USED)
+        Lox.error(new Token(TokenType.IDENTIFIER, name, undefined, -1), `Unused local variable ${name}.`);
+    }
   }
 
   private declare(name: Token) {
@@ -206,19 +224,20 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     const scope = this.scopes[this.scopes.length - 1];
     if (scope.has(name.lexeme)) Lox.error(name, "Already a variable with that name in this scope.");
 
-    scope.set(name.lexeme, false);
+    scope.set(name.lexeme, VariableState.DECLARED);
   }
 
   private define(name: Token) {
     if (this.scopes.length === 0) return;
 
     const scope = this.scopes[this.scopes.length - 1];
-    scope.set(name.lexeme, true);
+    scope.set(name.lexeme, VariableState.DEFINED);
   }
 
   private resolveLocal(expr: Expr, name: Token) {
     for (let i = this.scopes.length - 1; i >= 0; i--) {
       if (this.scopes[i].has(name.lexeme)) {
+        this.scopes[i].set(name.lexeme, VariableState.USED);
         this.interpreter.resolve(expr, this.scopes.length - 1 - i);
         return;
       }
