@@ -9,12 +9,28 @@ import {
   Unary,
   Variable,
   FunctionExpr,
+  Get,
+  Set,
+  This,
 } from "./Expr";
 import Token from "./Token";
 import { TokenType } from "./TokenType";
 import Lox from "./Lox";
 import ParseError from "./errors/ParseError";
-import { Block, Break, Continue, Expression, Function, If, Print, Return, Stmt, Var, While } from "./Stmt";
+import {
+  Block,
+  Break,
+  Class,
+  Continue,
+  Expression,
+  Function,
+  If,
+  Print,
+  Return,
+  Stmt,
+  Var,
+  While,
+} from "./Stmt";
 
 export default class Parser {
   private readonly tokens: Token[];
@@ -36,6 +52,7 @@ export default class Parser {
 
   private declaration(): Stmt {
     try {
+      if (this.match(TokenType.CLASS)) return this.classDeclaration();
       if (this.match(TokenType.FUN)) return this.function("function");
       if (this.match(TokenType.VAR)) return this.varDeclaration();
 
@@ -44,6 +61,20 @@ export default class Parser {
       this.synchronize();
       return null;
     }
+  }
+
+  private classDeclaration(): Stmt {
+    const name = this.consume(TokenType.IDENTIFIER, "Expect class name.");
+    this.consume(TokenType.LEFT_BRACE, "Expect '{' before class body.");
+
+    const methods: Function[] = [];
+    while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd()) {
+      methods.push(this.function("method"));
+    }
+
+    this.consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.");
+
+    return new Class(name, methods);
   }
 
   private varDeclaration(): Stmt {
@@ -211,6 +242,15 @@ export default class Parser {
     return params;
   }
 
+  /**
+   * Parses a function declaration.
+   *
+   * For functions it assumes the "fun" keyword has already been
+   * consumed, this allows for methods to also be parsed.
+   *
+   * @param kind The kind of function ("function" | "method")
+   * @returns The {@link Function} AST node
+   */
   private function(kind: string): Function {
     // parse identifer
     const name = this.consume(TokenType.IDENTIFIER, `Expect ${kind} name.`);
@@ -240,6 +280,8 @@ export default class Parser {
       if (expr instanceof Variable) {
         const name = expr.name;
         return new Assign(name, value);
+      } else if (expr instanceof Get) {
+        return new Set(expr.object, expr.name, value);
       }
 
       this.error(equals, "Invalid assignment target.");
@@ -338,6 +380,9 @@ export default class Parser {
     while (true) {
       if (this.match(TokenType.LEFT_PAREN)) {
         expr = this.finishCall(expr);
+      } else if (this.match(TokenType.DOT)) {
+        const name = this.consume(TokenType.IDENTIFIER, "Expect property name after '.'.");
+        expr = new Get(expr, name);
       } else {
         break;
       }
@@ -381,6 +426,8 @@ export default class Parser {
     if (this.match(TokenType.NUMBER, TokenType.STRING)) return new Literal(this.previous().literal);
 
     if (this.match(TokenType.FUN)) return this.functionExpression();
+
+    if (this.match(TokenType.THIS)) return new This(this.previous());
 
     if (this.match(TokenType.IDENTIFIER)) return new Variable(this.previous());
 

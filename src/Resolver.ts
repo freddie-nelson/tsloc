@@ -4,9 +4,12 @@ import {
   Call,
   Expr,
   FunctionExpr,
+  Get,
   Grouping,
   Literal,
   Logical,
+  Set,
+  This,
   Unary,
   Variable,
   Visitor as ExprVisitor,
@@ -16,6 +19,7 @@ import Lox from "./Lox";
 import {
   Block,
   Break,
+  Class,
   Continue,
   Expression,
   Function,
@@ -39,6 +43,13 @@ export enum VariableState {
 export enum FunctionType {
   NONE,
   FUNCTION,
+  INITIALIZER,
+  METHOD,
+}
+
+export enum ClassType {
+  NONE,
+  CLASS,
 }
 
 export enum LoopType {
@@ -58,6 +69,7 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
   private readonly scopes: Map<string, VariableState>[] = [];
 
   private currentFunction: FunctionType = FunctionType.NONE;
+  private currentClass: ClassType = ClassType.NONE;
   private currentLoop: LoopType = LoopType.NONE;
 
   constructor(interpreter: Interpreter) {
@@ -68,6 +80,27 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     this.beginScope();
     this.resolve(stmt.statements);
     this.endScope();
+  }
+
+  visitClassStmt(stmt: Class) {
+    this.declare(stmt.name);
+    this.define(stmt.name);
+
+    const enclosingClass = this.currentClass;
+    this.currentClass = ClassType.CLASS;
+
+    this.beginScope();
+    this.scopes[this.scopes.length - 1].set("this", VariableState.USED);
+
+    stmt.methods.forEach((m) => {
+      let declaration = FunctionType.METHOD;
+      if (m.name.lexeme === "init") declaration = FunctionType.INITIALIZER;
+
+      this.resolveFunction(m, declaration);
+    });
+
+    this.endScope();
+    this.currentClass = enclosingClass;
   }
 
   visitFunctionStmt(stmt: Function) {
@@ -114,7 +147,12 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     if (this.currentFunction === FunctionType.NONE)
       Lox.error(stmt.keyword, "Can't return from top-level code.");
 
-    if (stmt.value) this.resolve(stmt.value);
+    if (stmt.value) {
+      if (this.currentFunction === FunctionType.INITIALIZER)
+        Lox.error(stmt.keyword, "Can't return a value from an initializer.");
+
+      this.resolve(stmt.value);
+    }
   }
 
   visitContinueStmt(stmt: Continue) {
@@ -152,6 +190,21 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
   visitCallExpr(expr: Call) {
     this.resolve(expr.callee);
     expr.args.forEach((a) => this.resolve(a));
+  }
+
+  visitGetExpr(expr: Get) {
+    this.resolve(expr.object);
+  }
+
+  visitSetExpr(expr: Set) {
+    this.resolve(expr.value);
+    this.resolve(expr.object);
+  }
+
+  visitThisExpr(expr: This) {
+    if (this.currentClass === ClassType.NONE) Lox.error(expr.keyword, "Can't use 'this' outside of a class.");
+
+    this.resolveLocal(expr, expr.keyword);
   }
 
   visitGroupingExpr(expr: Grouping) {

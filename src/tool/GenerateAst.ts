@@ -15,6 +15,9 @@ export default class GenerateAst {
       "Logical      :: left: Expr, operator: Token, right: Expr",
       "Binary       :: left: Expr, operator: Token, right: Expr",
       "Call         :: callee: Expr, paren: Token, args: Expr[]",
+      "Get          :: object: Expr, name: Token",
+      "Set          :: object: Expr, name: Token, value: Expr",
+      "This         :: keyword: Token",
       "Grouping     :: expression: Expr",
       "Literal      :: value: any",
       "Unary        :: operator: Token, right: Expr",
@@ -31,6 +34,7 @@ export default class GenerateAst {
       "Print      :: expression: Expr",
       "Var        :: name: Token, initializer: Expr | undefined",
       "While      :: condition: Expr, body: Stmt, isFor: boolean = false, hasIncrement: boolean = false",
+      "Class      :: name: Token, methods: Function[]",
       "Break      :: keyword: Token",
       "Continue   :: keyword: Token",
     ]);

@@ -1,153 +1,221 @@
-import Token from "./Token";
-import { Stmt } from "./Stmt";
 
-export abstract class Expr {
-  abstract accept<T>(visitor: Visitor<T>): T;
-}
+    import Token from "./Token";
+    ;
+    import { Stmt } from "./Stmt";
 
-export interface Visitor<T> {
-  visitAssignExpr(expr: Assign): T;
-  visitLogicalExpr(expr: Logical): T;
-  visitBinaryExpr(expr: Binary): T;
-  visitCallExpr(expr: Call): T;
-  visitGroupingExpr(expr: Grouping): T;
-  visitLiteralExpr(expr: Literal): T;
-  visitUnaryExpr(expr: Unary): T;
-  visitVariableExpr(expr: Variable): T;
-  visitFunctionExprExpr(expr: FunctionExpr): T;
-}
+    export abstract class Expr {
+      abstract accept<T>(visitor: Visitor<T>): T;
+    }
 
-export class Assign extends Expr {
-  readonly name: Token;
-  readonly value: Expr;
+    
+    export interface Visitor<T> {
+      visitAssignExpr(expr: Assign): T;
+visitLogicalExpr(expr: Logical): T;
+visitBinaryExpr(expr: Binary): T;
+visitCallExpr(expr: Call): T;
+visitGetExpr(expr: Get): T;
+visitSetExpr(expr: Set): T;
+visitThisExpr(expr: This): T;
+visitGroupingExpr(expr: Grouping): T;
+visitLiteralExpr(expr: Literal): T;
+visitUnaryExpr(expr: Unary): T;
+visitVariableExpr(expr: Variable): T;
+visitFunctionExprExpr(expr: FunctionExpr): T;
 
-  constructor(name: Token, value: Expr) {
-    super();
-    this.name = name;
-    this.value = value;
-  }
+    }
+    
 
-  accept<T>(visitor: Visitor<T>): T {
-    return visitor.visitAssignExpr(this);
-  }
-}
+    
+      export class Assign extends Expr {
+        readonly name: Token;
+readonly value: Expr;
 
-export class Logical extends Expr {
-  readonly left: Expr;
-  readonly operator: Token;
-  readonly right: Expr;
+        constructor(name: Token,value: Expr) {
+          super();
+          this.name = name;
+this.value = value;
 
-  constructor(left: Expr, operator: Token, right: Expr) {
-    super();
-    this.left = left;
-    this.operator = operator;
-    this.right = right;
-  }
+        }
 
-  accept<T>(visitor: Visitor<T>): T {
-    return visitor.visitLogicalExpr(this);
-  }
-}
+        accept<T>(visitor: Visitor<T>): T {
+          return visitor.visitAssignExpr(this);
+        }
+      }
+    
+      export class Logical extends Expr {
+        readonly left: Expr;
+readonly operator: Token;
+readonly right: Expr;
 
-export class Binary extends Expr {
-  readonly left: Expr;
-  readonly operator: Token;
-  readonly right: Expr;
+        constructor(left: Expr,operator: Token,right: Expr) {
+          super();
+          this.left = left;
+this.operator = operator;
+this.right = right;
 
-  constructor(left: Expr, operator: Token, right: Expr) {
-    super();
-    this.left = left;
-    this.operator = operator;
-    this.right = right;
-  }
+        }
 
-  accept<T>(visitor: Visitor<T>): T {
-    return visitor.visitBinaryExpr(this);
-  }
-}
+        accept<T>(visitor: Visitor<T>): T {
+          return visitor.visitLogicalExpr(this);
+        }
+      }
+    
+      export class Binary extends Expr {
+        readonly left: Expr;
+readonly operator: Token;
+readonly right: Expr;
 
-export class Call extends Expr {
-  readonly callee: Expr;
-  readonly paren: Token;
-  readonly args: Expr[];
+        constructor(left: Expr,operator: Token,right: Expr) {
+          super();
+          this.left = left;
+this.operator = operator;
+this.right = right;
 
-  constructor(callee: Expr, paren: Token, args: Expr[]) {
-    super();
-    this.callee = callee;
-    this.paren = paren;
-    this.args = args;
-  }
+        }
 
-  accept<T>(visitor: Visitor<T>): T {
-    return visitor.visitCallExpr(this);
-  }
-}
+        accept<T>(visitor: Visitor<T>): T {
+          return visitor.visitBinaryExpr(this);
+        }
+      }
+    
+      export class Call extends Expr {
+        readonly callee: Expr;
+readonly paren: Token;
+readonly args: Expr[];
 
-export class Grouping extends Expr {
-  readonly expression: Expr;
+        constructor(callee: Expr,paren: Token,args: Expr[]) {
+          super();
+          this.callee = callee;
+this.paren = paren;
+this.args = args;
 
-  constructor(expression: Expr) {
-    super();
-    this.expression = expression;
-  }
+        }
 
-  accept<T>(visitor: Visitor<T>): T {
-    return visitor.visitGroupingExpr(this);
-  }
-}
+        accept<T>(visitor: Visitor<T>): T {
+          return visitor.visitCallExpr(this);
+        }
+      }
+    
+      export class Get extends Expr {
+        readonly object: Expr;
+readonly name: Token;
 
-export class Literal extends Expr {
-  readonly value: any;
+        constructor(object: Expr,name: Token) {
+          super();
+          this.object = object;
+this.name = name;
 
-  constructor(value: any) {
-    super();
-    this.value = value;
-  }
+        }
 
-  accept<T>(visitor: Visitor<T>): T {
-    return visitor.visitLiteralExpr(this);
-  }
-}
+        accept<T>(visitor: Visitor<T>): T {
+          return visitor.visitGetExpr(this);
+        }
+      }
+    
+      export class Set extends Expr {
+        readonly object: Expr;
+readonly name: Token;
+readonly value: Expr;
 
-export class Unary extends Expr {
-  readonly operator: Token;
-  readonly right: Expr;
+        constructor(object: Expr,name: Token,value: Expr) {
+          super();
+          this.object = object;
+this.name = name;
+this.value = value;
 
-  constructor(operator: Token, right: Expr) {
-    super();
-    this.operator = operator;
-    this.right = right;
-  }
+        }
 
-  accept<T>(visitor: Visitor<T>): T {
-    return visitor.visitUnaryExpr(this);
-  }
-}
+        accept<T>(visitor: Visitor<T>): T {
+          return visitor.visitSetExpr(this);
+        }
+      }
+    
+      export class This extends Expr {
+        readonly keyword: Token;
 
-export class Variable extends Expr {
-  readonly name: Token;
+        constructor(keyword: Token) {
+          super();
+          this.keyword = keyword;
 
-  constructor(name: Token) {
-    super();
-    this.name = name;
-  }
+        }
 
-  accept<T>(visitor: Visitor<T>): T {
-    return visitor.visitVariableExpr(this);
-  }
-}
+        accept<T>(visitor: Visitor<T>): T {
+          return visitor.visitThisExpr(this);
+        }
+      }
+    
+      export class Grouping extends Expr {
+        readonly expression: Expr;
 
-export class FunctionExpr extends Expr {
-  readonly params: Token[];
-  readonly body: Stmt[];
+        constructor(expression: Expr) {
+          super();
+          this.expression = expression;
 
-  constructor(params: Token[], body: Stmt[]) {
-    super();
-    this.params = params;
-    this.body = body;
-  }
+        }
 
-  accept<T>(visitor: Visitor<T>): T {
-    return visitor.visitFunctionExprExpr(this);
-  }
-}
+        accept<T>(visitor: Visitor<T>): T {
+          return visitor.visitGroupingExpr(this);
+        }
+      }
+    
+      export class Literal extends Expr {
+        readonly value: any;
+
+        constructor(value: any) {
+          super();
+          this.value = value;
+
+        }
+
+        accept<T>(visitor: Visitor<T>): T {
+          return visitor.visitLiteralExpr(this);
+        }
+      }
+    
+      export class Unary extends Expr {
+        readonly operator: Token;
+readonly right: Expr;
+
+        constructor(operator: Token,right: Expr) {
+          super();
+          this.operator = operator;
+this.right = right;
+
+        }
+
+        accept<T>(visitor: Visitor<T>): T {
+          return visitor.visitUnaryExpr(this);
+        }
+      }
+    
+      export class Variable extends Expr {
+        readonly name: Token;
+
+        constructor(name: Token) {
+          super();
+          this.name = name;
+
+        }
+
+        accept<T>(visitor: Visitor<T>): T {
+          return visitor.visitVariableExpr(this);
+        }
+      }
+    
+      export class FunctionExpr extends Expr {
+        readonly params: Token[];
+readonly body: Stmt[];
+
+        constructor(params: Token[],body: Stmt[]) {
+          super();
+          this.params = params;
+this.body = body;
+
+        }
+
+        accept<T>(visitor: Visitor<T>): T {
+          return visitor.visitFunctionExprExpr(this);
+        }
+      }
+    
+    

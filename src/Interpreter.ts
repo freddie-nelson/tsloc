@@ -11,17 +11,23 @@ import {
   Call,
   Expr,
   FunctionExpr,
+  Get,
   Grouping,
   Literal,
   Logical,
+  Set,
+  This,
   Unary,
   Variable,
   Visitor as ExprVistor,
 } from "./Expr";
 import Lox from "./Lox";
+import LoxClass from "./LoxClass";
+import LoxInstance from "./LoxInstance";
 import {
   Block,
   Break,
+  Class,
   Expression,
   Function,
   If,
@@ -157,6 +163,31 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
     return func.call(this, args);
   }
 
+  visitGetExpr(expr: Get) {
+    const obj: Object = this.evaluate(expr.object);
+    if (obj instanceof LoxInstance) {
+      return obj.get(expr.name);
+    }
+
+    throw new RuntimeError(expr.name, "Only instances have properties.");
+  }
+
+  visitSetExpr(expr: Set) {
+    const obj: Object = this.evaluate(expr.object);
+    if (!(obj instanceof LoxInstance)) {
+      throw new RuntimeError(expr.name, "Only instance have fields.");
+    }
+
+    const val: Object = this.evaluate(expr.value);
+    obj.set(expr.name, val);
+
+    return val;
+  }
+
+  visitThisExpr(expr: This) {
+    return this.lookUpVariable(expr.keyword, expr);
+  }
+
   visitGroupingExpr(expr: Grouping): Object {
     return this.evaluate(expr.expression);
   }
@@ -202,6 +233,19 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
 
   visitExpressionStmt(stmt: Expression) {
     this.evaluate(stmt.expression);
+  }
+
+  visitClassStmt(stmt: Class) {
+    this.environment.define(stmt.name.lexeme, null);
+
+    const methods: Map<string, CallableFunction> = new Map();
+    stmt.methods.forEach((m) => {
+      const func = new CallableFunction(m, this.environment, m.name.lexeme === "init");
+      methods.set(m.name.lexeme, func);
+    });
+
+    const klass = new LoxClass(stmt.name.lexeme, methods);
+    this.environment.assign(stmt.name, klass);
   }
 
   visitFunctionStmt(stmt: Function) {

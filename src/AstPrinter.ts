@@ -4,9 +4,12 @@ import {
   Call,
   Expr,
   FunctionExpr,
+  Get,
   Grouping,
   Literal,
   Logical,
+  Set,
+  This,
   Unary,
   Variable,
   Visitor,
@@ -15,6 +18,14 @@ import {
 export default class AstPrinter implements Visitor<string> {
   print(expr: Expr): string {
     return expr.accept(this);
+  }
+
+  visitGetExpr(expr: Get): string {
+    return this.parenthesize(expr.name.lexeme, expr.object);
+  }
+
+  visitSetExpr(expr: Set): string {
+    return this.parenthesize(expr.name.lexeme, expr.object, expr.value);
   }
 
   visitAssignExpr(expr: Assign): string {
@@ -52,6 +63,10 @@ export default class AstPrinter implements Visitor<string> {
 
   visitVariableExpr(expr: Variable): string {
     return expr.name.lexeme;
+  }
+
+  visitThisExpr(expr: This): string {
+    return "this";
   }
 
   private parenthesize(name: string, ...exprs: Expr[]) {

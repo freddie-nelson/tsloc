@@ -1,0 +1,23 @@
+class Breakfast {
+  init(chef) {
+    this.chef = chef;
+  }
+
+  whosCooking() {
+    print this.chef + "'s a-cookin'!";
+  }
+
+  cook() {
+    print "Eggs a-fryin'!";
+  }
+
+  serve(who) {
+    print "Enjoy your breakfast, " + who + ". :)";
+  }
+}
+
+var brek = Breakfast("Freddie");
+brek.whosCooking();
+brek.cook();
+brek.serve("Sam");
+
