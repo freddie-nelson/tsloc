@@ -22,7 +22,7 @@ import {
   Visitor as ExprVistor,
 } from "./Expr";
 import Lox from "./Lox";
-import LoxClass from "./LoxClass";
+import LoxClass, { ClassMethods } from "./LoxClass";
 import LoxInstance from "./LoxInstance";
 import {
   Block,
@@ -238,8 +238,21 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
   visitClassStmt(stmt: Class) {
     this.environment.define(stmt.name.lexeme, null);
 
-    const methods: Map<string, CallableFunction> = new Map();
-    const getters: Map<string, CallableFunction> = new Map();
+    const staticMethods: ClassMethods = new Map();
+    const staticGetters: ClassMethods = new Map();
+
+    const methods: ClassMethods = new Map();
+    const getters: ClassMethods = new Map();
+
+    stmt.staticMethods.forEach((m) => {
+      const func = new CallableFunction(m, this.environment, m.name.lexeme === "init");
+      staticMethods.set(m.name.lexeme, func);
+    });
+
+    stmt.staticGetters.forEach((g) => {
+      const func = new CallableFunction(g, this.environment);
+      staticGetters.set(g.name.lexeme, func);
+    });
 
     stmt.methods.forEach((m) => {
       const func = new CallableFunction(m, this.environment, m.name.lexeme === "init");
@@ -251,7 +264,7 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
       getters.set(g.name.lexeme, func);
     });
 
-    const klass = new LoxClass(stmt.name.lexeme, methods, getters);
+    const klass = new LoxClass(stmt.name.lexeme, methods, getters, staticMethods, staticGetters, this);
     this.environment.assign(stmt.name, klass);
   }
 

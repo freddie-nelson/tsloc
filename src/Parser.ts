@@ -67,17 +67,24 @@ export default class Parser {
     const name = this.consume(TokenType.IDENTIFIER, "Expect class name.");
     this.consume(TokenType.LEFT_BRACE, "Expect '{' before class body.");
 
+    const staticMethods: Function[] = [];
+    const staticGetters: Function[] = [];
+
     const methods: Function[] = [];
     const getters: Function[] = [];
 
     while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd()) {
       let kind = "method";
+      let type = this.check(TokenType.CLASS) ? "static" : "instance";
+      if (type === "static") {
+        this.consume(TokenType.CLASS, `Expect 'class' before static ${kind} name.`);
+      }
+
       const name = this.consume(TokenType.IDENTIFIER, `Expect ${kind} name.`);
 
       let params: Token[] = [];
       if (this.check(TokenType.LEFT_PAREN)) {
         this.consume(TokenType.LEFT_PAREN, `Expect '(' after ${kind} name.`);
-
         params = this.parameters();
       } else {
         kind = "getter";
@@ -88,16 +95,25 @@ export default class Parser {
       const body = this.block();
 
       const func = new Function(name, params, body);
-      if (kind === "method") {
-        methods.push(func);
+
+      if (type === "instance") {
+        if (kind === "method") {
+          methods.push(func);
+        } else {
+          getters.push(func);
+        }
       } else {
-        getters.push(func);
+        if (kind === "method") {
+          staticMethods.push(func);
+        } else {
+          staticGetters.push(func);
+        }
       }
     }
 
     this.consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.");
 
-    return new Class(name, methods, getters);
+    return new Class(name, methods, getters, staticMethods, staticGetters);
   }
 
   private varDeclaration(): Stmt {

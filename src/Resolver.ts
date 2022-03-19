@@ -92,19 +92,32 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     this.beginScope();
     this.scopes[this.scopes.length - 1].set("this", VariableState.USED);
 
-    stmt.methods.forEach((m) => {
-      if (stmt.getters.find((g) => m.name.lexeme === g.name.lexeme))
-        Lox.error(m.name, `Duplicate method and getter name '${m.name.lexeme}' in class.`);
+    const methods = [stmt.methods, stmt.staticMethods];
+    const getters = [stmt.getters, stmt.staticGetters];
 
-      let declaration = FunctionType.METHOD;
-      if (m.name.lexeme === "init") declaration = FunctionType.INITIALIZER;
+    methods.forEach((ms, i) => {
+      ms.forEach((m) => {
+        if (getters[i].find((g) => m.name.lexeme === g.name.lexeme))
+          Lox.error(m.name, `Duplicate method and getter name '${m.name.lexeme}' in class.`);
 
-      this.resolveFunction(m, declaration);
+        let declaration = FunctionType.METHOD;
+        if (m.name.lexeme === "init") {
+          declaration = FunctionType.INITIALIZER;
+
+          if (ms === stmt.staticMethods && m.params.length > 0) {
+            Lox.error(m.name, "Class static initializer can't have parameters.");
+          }
+        }
+
+        this.resolveFunction(m, declaration);
+      });
     });
 
-    stmt.getters.forEach((g) => {
-      let declaration = FunctionType.METHOD;
-      this.resolveFunction(g, declaration);
+    getters.forEach((gs) => {
+      gs.forEach((g) => {
+        let declaration = FunctionType.METHOD;
+        this.resolveFunction(g, declaration);
+      });
     });
 
     this.endScope();

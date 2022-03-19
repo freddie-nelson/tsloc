@@ -1,0 +1,19 @@
+class Math {
+  class init() {
+    this.PI = 3.14159;
+    this.E = 2.71828;
+  }
+
+  class PI_SQUARED {
+    return this.PI * this.PI;
+  } 
+
+  class square(n) {
+    return n * n;
+  }
+}
+
+print Math.PI;
+print Math.E;
+print Math.PI_SQUARED;
+print Math.square(3);

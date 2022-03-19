@@ -159,12 +159,16 @@ this.hasIncrement = hasIncrement;
         readonly name: Token;
 readonly methods: Function[];
 readonly getters: Function[];
+readonly staticMethods: Function[];
+readonly staticGetters: Function[];
 
-        constructor(name: Token,methods: Function[],getters: Function[]) {
+        constructor(name: Token,methods: Function[],getters: Function[],staticMethods: Function[],staticGetters: Function[]) {
           super();
           this.name = name;
 this.methods = methods;
 this.getters = getters;
+this.staticMethods = staticMethods;
+this.staticGetters = staticGetters;
 
         }
 
