@@ -6,5 +6,5 @@ export default interface Callable {
 }
 
 export function isCallable(obj: any): obj is Callable {
-  return "arity" in obj && "call" in obj;
+  return typeof obj === "object" && "arity" in obj && "call" in obj;
 }

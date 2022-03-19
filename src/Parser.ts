@@ -68,13 +68,36 @@ export default class Parser {
     this.consume(TokenType.LEFT_BRACE, "Expect '{' before class body.");
 
     const methods: Function[] = [];
+    const getters: Function[] = [];
+
     while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd()) {
-      methods.push(this.function("method"));
+      let kind = "method";
+      const name = this.consume(TokenType.IDENTIFIER, `Expect ${kind} name.`);
+
+      let params: Token[] = [];
+      if (this.check(TokenType.LEFT_PAREN)) {
+        this.consume(TokenType.LEFT_PAREN, `Expect '(' after ${kind} name.`);
+
+        params = this.parameters();
+      } else {
+        kind = "getter";
+      }
+
+      // parse body
+      this.consume(TokenType.LEFT_BRACE, `Expect '{' before ${kind} body.`);
+      const body = this.block();
+
+      const func = new Function(name, params, body);
+      if (kind === "method") {
+        methods.push(func);
+      } else {
+        getters.push(func);
+      }
     }
 
     this.consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.");
 
-    return new Class(name, methods);
+    return new Class(name, methods, getters);
   }
 
   private varDeclaration(): Stmt {

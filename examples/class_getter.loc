@@ -1,0 +1,23 @@
+class Person {
+  init(firstname, lastname) {
+    this.firstname = firstname;
+    this.lastname = lastname;
+  }
+
+  sayHi() {
+    print "Hi " + this.firstname;
+  }
+
+  sayHiFullname() {
+    print "Hi " + this.fullname;
+  }
+
+  fullname {
+    return this.firstname + " " + this.lastname;
+  }
+}
+
+var freddie = Person("Freddie", "Nelson");
+freddie.sayHi();
+freddie.sayHiFullname();
+print "Fullname: " + freddie.fullname;

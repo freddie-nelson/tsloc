@@ -6,10 +6,12 @@ import LoxInstance from "./LoxInstance";
 export default class LoxClass implements Callable {
   readonly name: string;
   private readonly methods: Map<string, CallableFunction>;
+  private readonly getters: Map<string, CallableFunction>;
 
-  constructor(name: string, methods: Map<string, CallableFunction>) {
+  constructor(name: string, methods: Map<string, CallableFunction>, getters: Map<string, CallableFunction>) {
     this.name = name;
     this.methods = methods;
+    this.getters = getters;
   }
 
   call(interpreter: Interpreter, args: Object[]) {
@@ -34,6 +36,12 @@ export default class LoxClass implements Callable {
   findMethod(method: string): CallableFunction | undefined {
     if (this.methods.has(method)) {
       return this.methods.get(method);
+    }
+  }
+
+  findGetter(getter: string): CallableFunction | undefined {
+    if (this.getters.has(getter)) {
+      return this.getters.get(getter);
     }
   }
 

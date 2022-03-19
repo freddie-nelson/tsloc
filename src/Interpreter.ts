@@ -166,7 +166,7 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
   visitGetExpr(expr: Get) {
     const obj: Object = this.evaluate(expr.object);
     if (obj instanceof LoxInstance) {
-      return obj.get(expr.name);
+      return obj.get(expr.name, this);
     }
 
     throw new RuntimeError(expr.name, "Only instances have properties.");
@@ -239,12 +239,19 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
     this.environment.define(stmt.name.lexeme, null);
 
     const methods: Map<string, CallableFunction> = new Map();
+    const getters: Map<string, CallableFunction> = new Map();
+
     stmt.methods.forEach((m) => {
       const func = new CallableFunction(m, this.environment, m.name.lexeme === "init");
       methods.set(m.name.lexeme, func);
     });
 
-    const klass = new LoxClass(stmt.name.lexeme, methods);
+    stmt.getters.forEach((g) => {
+      const func = new CallableFunction(g, this.environment);
+      getters.set(g.name.lexeme, func);
+    });
+
+    const klass = new LoxClass(stmt.name.lexeme, methods, getters);
     this.environment.assign(stmt.name, klass);
   }
 

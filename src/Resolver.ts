@@ -93,10 +93,18 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     this.scopes[this.scopes.length - 1].set("this", VariableState.USED);
 
     stmt.methods.forEach((m) => {
+      if (stmt.getters.find((g) => m.name.lexeme === g.name.lexeme))
+        Lox.error(m.name, `Duplicate method and getter name '${m.name.lexeme}' in class.`);
+
       let declaration = FunctionType.METHOD;
       if (m.name.lexeme === "init") declaration = FunctionType.INITIALIZER;
 
       this.resolveFunction(m, declaration);
+    });
+
+    stmt.getters.forEach((g) => {
+      let declaration = FunctionType.METHOD;
+      this.resolveFunction(g, declaration);
     });
 
     this.endScope();

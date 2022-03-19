@@ -34,7 +34,7 @@ export default class GenerateAst {
       "Print      :: expression: Expr",
       "Var        :: name: Token, initializer: Expr | undefined",
       "While      :: condition: Expr, body: Stmt, isFor: boolean = false, hasIncrement: boolean = false",
-      "Class      :: name: Token, methods: Function[]",
+      "Class      :: name: Token, methods: Function[], getters: Function[]",
       "Break      :: keyword: Token",
       "Continue   :: keyword: Token",
     ]);

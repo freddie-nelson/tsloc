@@ -158,11 +158,13 @@ this.hasIncrement = hasIncrement;
       export class Class extends Stmt {
         readonly name: Token;
 readonly methods: Function[];
+readonly getters: Function[];
 
-        constructor(name: Token,methods: Function[]) {
+        constructor(name: Token,methods: Function[],getters: Function[]) {
           super();
           this.name = name;
 this.methods = methods;
+this.getters = getters;
 
         }
 
