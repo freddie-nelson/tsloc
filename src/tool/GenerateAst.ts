@@ -18,6 +18,8 @@ export default class GenerateAst {
       "Get          :: object: Expr, name: Token",
       "Set          :: object: Expr, name: Token, value: Expr",
       "This         :: keyword: Token",
+      "Super        :: keyword: Token",
+      "SuperCall    :: keyword: Token, args: Expr[]",
       "Grouping     :: expression: Expr",
       "Literal      :: value: any",
       "Unary        :: operator: Token, right: Expr",
@@ -34,7 +36,7 @@ export default class GenerateAst {
       "Print      :: expression: Expr",
       "Var        :: name: Token, initializer: Expr | undefined",
       "While      :: condition: Expr, body: Stmt, isFor: boolean = false, hasIncrement: boolean = false",
-      "Class      :: name: Token, methods: Function[], getters: Function[], staticMethods: Function[], staticGetters: Function[]",
+      "Class      :: name: Token, superclass: Variable | undefined, methods: Function[], getters: Function[], staticMethods: Function[], staticGetters: Function[]",
       "Break      :: keyword: Token",
       "Continue   :: keyword: Token",
     ]);
@@ -44,7 +46,7 @@ export default class GenerateAst {
     const path = `${outputDir}/${baseName}.ts`;
     const data = `
     import Token from "./Token";
-    ${baseName !== "Expr" ? 'import { Expr } from "./Expr"' : ""};
+    ${baseName !== "Expr" ? 'import { Expr, Variable } from "./Expr"' : ""};
     ${baseName !== "Stmt" ? 'import { Stmt } from "./Stmt"' : ""};
 
     export abstract class ${baseName} {

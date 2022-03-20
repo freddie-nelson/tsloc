@@ -1,6 +1,6 @@
 
     import Token from "./Token";
-    import { Expr } from "./Expr";
+    import { Expr, Variable } from "./Expr";
     ;
 
     export abstract class Stmt {
@@ -157,14 +157,16 @@ this.hasIncrement = hasIncrement;
     
       export class Class extends Stmt {
         readonly name: Token;
+readonly superclass: Variable | undefined;
 readonly methods: Function[];
 readonly getters: Function[];
 readonly staticMethods: Function[];
 readonly staticGetters: Function[];
 
-        constructor(name: Token,methods: Function[],getters: Function[],staticMethods: Function[],staticGetters: Function[]) {
+        constructor(name: Token,superclass: Variable | undefined,methods: Function[],getters: Function[],staticMethods: Function[],staticGetters: Function[]) {
           super();
           this.name = name;
+this.superclass = superclass;
 this.methods = methods;
 this.getters = getters;
 this.staticMethods = staticMethods;

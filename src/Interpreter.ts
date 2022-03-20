@@ -16,6 +16,8 @@ import {
   Literal,
   Logical,
   Set,
+  Super,
+  SuperCall,
   This,
   Unary,
   Variable,
@@ -175,7 +177,7 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
   visitSetExpr(expr: Set) {
     const obj: Object = this.evaluate(expr.object);
     if (!(obj instanceof LoxInstance)) {
-      throw new RuntimeError(expr.name, "Only instance have fields.");
+      throw new RuntimeError(expr.name, "Only instances have fields.");
     }
 
     const val: Object = this.evaluate(expr.value);
@@ -186,6 +188,33 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
 
   visitThisExpr(expr: This) {
     return this.lookUpVariable(expr.keyword, expr);
+  }
+
+  visitSuperExpr(expr: Super) {
+    return this.lookUpVariable(expr.keyword, expr);
+  }
+
+  visitSuperCallExpr(expr: SuperCall): Object {
+    const distance = this.locals.get(expr);
+
+    const superclass = <LoxClass>this.environment.getAt(distance, expr.keyword);
+    const instance = <LoxInstance>(
+      this.environment.getAt(distance, new Token(TokenType.IDENTIFIER, "this", undefined, -1))
+    );
+
+    const args = expr.args.map((a) => this.evaluate(a));
+    if (args.length !== superclass.arity()) {
+      throw new RuntimeError(
+        expr.keyword,
+        `Expected ${superclass.arity()} arguments but got ${args.length}.`
+      );
+    }
+
+    instance.super = superclass.call(this, args);
+
+    this.environment.assignAt(distance, expr.keyword, instance.super);
+
+    return null;
   }
 
   visitGroupingExpr(expr: Grouping): Object {
@@ -236,6 +265,14 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
   }
 
   visitClassStmt(stmt: Class) {
+    let superclass: Object;
+    if (stmt.superclass) {
+      superclass = this.evaluate(stmt.superclass);
+      if (!(superclass instanceof LoxClass)) {
+        throw new RuntimeError(stmt.superclass.name, "Superclass must be a class.");
+      }
+    }
+
     this.environment.define(stmt.name.lexeme, null);
 
     const staticMethods: ClassMethods = new Map();
@@ -264,7 +301,15 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
       getters.set(g.name.lexeme, func);
     });
 
-    const klass = new LoxClass(stmt.name.lexeme, methods, getters, staticMethods, staticGetters, this);
+    const klass = new LoxClass(
+      stmt.name.lexeme,
+      <LoxClass>superclass,
+      methods,
+      getters,
+      staticMethods,
+      staticGetters,
+      this
+    );
     this.environment.assign(stmt.name, klass);
   }
 
@@ -350,6 +395,8 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
       for (const s of statements) {
         this.execute(s);
       }
+    } catch (error) {
+      throw error;
     } finally {
       this.environment = previous;
     }

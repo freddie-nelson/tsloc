@@ -9,6 +9,8 @@ import {
   Literal,
   Logical,
   Set,
+  Super,
+  SuperCall,
   This,
   Unary,
   Variable,
@@ -67,6 +69,14 @@ export default class AstPrinter implements Visitor<string> {
 
   visitThisExpr(expr: This): string {
     return "this";
+  }
+
+  visitSuperExpr(expr: Super): string {
+    return "super";
+  }
+
+  visitSuperCallExpr(expr: SuperCall): string {
+    return this.parenthesize("super_call", ...expr.args);
   }
 
   private parenthesize(name: string, ...exprs: Expr[]) {

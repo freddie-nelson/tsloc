@@ -12,6 +12,8 @@ import {
   Get,
   Set,
   This,
+  Super,
+  SuperCall,
 } from "./Expr";
 import Token from "./Token";
 import { TokenType } from "./TokenType";
@@ -31,6 +33,7 @@ import {
   Var,
   While,
 } from "./Stmt";
+import { setUncaughtExceptionCaptureCallback } from "process";
 
 export default class Parser {
   private readonly tokens: Token[];
@@ -65,6 +68,13 @@ export default class Parser {
 
   private classDeclaration(): Stmt {
     const name = this.consume(TokenType.IDENTIFIER, "Expect class name.");
+
+    let superclass: Variable;
+    if (this.match(TokenType.LESS)) {
+      this.consume(TokenType.IDENTIFIER, "Expect superclass name.");
+      superclass = new Variable(this.previous());
+    }
+
     this.consume(TokenType.LEFT_BRACE, "Expect '{' before class body.");
 
     const staticMethods: Function[] = [];
@@ -75,16 +85,12 @@ export default class Parser {
 
     while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd()) {
       let kind = "method";
-      let type = this.check(TokenType.CLASS) ? "static" : "instance";
-      if (type === "static") {
-        this.consume(TokenType.CLASS, `Expect 'class' before static ${kind} name.`);
-      }
+      let type = this.match(TokenType.CLASS) ? "static" : "instance";
 
       const name = this.consume(TokenType.IDENTIFIER, `Expect ${kind} name.`);
 
       let params: Token[] = [];
-      if (this.check(TokenType.LEFT_PAREN)) {
-        this.consume(TokenType.LEFT_PAREN, `Expect '(' after ${kind} name.`);
+      if (this.match(TokenType.LEFT_PAREN)) {
         params = this.parameters();
       } else {
         kind = "getter";
@@ -113,7 +119,7 @@ export default class Parser {
 
     this.consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.");
 
-    return new Class(name, methods, getters, staticMethods, staticGetters);
+    return new Class(name, superclass, methods, getters, staticMethods, staticGetters);
   }
 
   private varDeclaration(): Stmt {
@@ -430,7 +436,7 @@ export default class Parser {
     return expr;
   }
 
-  private finishCall(callee: Expr): Expr {
+  private finishCall(callee: Expr): Call {
     const args: Expr[] = [];
     if (!this.check(TokenType.RIGHT_PAREN)) {
       do {
@@ -465,6 +471,19 @@ export default class Parser {
     if (this.match(TokenType.NUMBER, TokenType.STRING)) return new Literal(this.previous().literal);
 
     if (this.match(TokenType.FUN)) return this.functionExpression();
+
+    if (this.match(TokenType.SUPER)) {
+      const keyword = this.previous();
+
+      if (this.check(TokenType.DOT)) {
+        return new Super(keyword);
+      } else if (this.match(TokenType.LEFT_PAREN)) {
+        const call = this.finishCall(new Super(keyword));
+        return new SuperCall(keyword, call.args);
+      }
+
+      Lox.error(keyword, "Expect call or property access after 'super'.");
+    }
 
     if (this.match(TokenType.THIS)) return new This(this.previous());
 

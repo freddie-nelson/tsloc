@@ -21,9 +21,10 @@ export default class CallableFunction implements Callable {
     this.isInitializer = isInitializer;
   }
 
-  bind(instance: LoxInstance) {
+  bind(instance: LoxInstance, superclass?: LoxInstance) {
     const env = new Environment(this.closure);
     env.define("this", instance);
+    if (superclass) env.define("super", superclass);
 
     return new CallableFunction(this.declaration, env, this.isInitializer);
   }
@@ -42,6 +43,8 @@ export default class CallableFunction implements Callable {
           return this.closure.get(new Token(TokenType.IDENTIFIER, "this", undefined, -1));
 
         return error.value;
+      } else {
+        throw error;
       }
     }
 

@@ -16,6 +16,8 @@ visitCallExpr(expr: Call): T;
 visitGetExpr(expr: Get): T;
 visitSetExpr(expr: Set): T;
 visitThisExpr(expr: This): T;
+visitSuperExpr(expr: Super): T;
+visitSuperCallExpr(expr: SuperCall): T;
 visitGroupingExpr(expr: Grouping): T;
 visitLiteralExpr(expr: Literal): T;
 visitUnaryExpr(expr: Unary): T;
@@ -141,6 +143,36 @@ this.value = value;
 
         accept<T>(visitor: Visitor<T>): T {
           return visitor.visitThisExpr(this);
+        }
+      }
+    
+      export class Super extends Expr {
+        readonly keyword: Token;
+
+        constructor(keyword: Token) {
+          super();
+          this.keyword = keyword;
+
+        }
+
+        accept<T>(visitor: Visitor<T>): T {
+          return visitor.visitSuperExpr(this);
+        }
+      }
+    
+      export class SuperCall extends Expr {
+        readonly keyword: Token;
+readonly args: Expr[];
+
+        constructor(keyword: Token,args: Expr[]) {
+          super();
+          this.keyword = keyword;
+this.args = args;
+
+        }
+
+        accept<T>(visitor: Visitor<T>): T {
+          return visitor.visitSuperCallExpr(this);
         }
       }
     

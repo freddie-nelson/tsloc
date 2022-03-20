@@ -1,0 +1,51 @@
+class Person {
+  init(name, age) {
+    this.name = name;
+    this.age = age;
+  }
+
+  display() {
+    print "Displaying from " + this;
+    print this.name + " " + this.age;
+  }
+}
+
+class Teacher < Person {
+  init(name, age, subject) {
+    super(name, age);
+    this.subject = subject;
+  }
+
+  display() {
+    super.display();
+
+    print "Displaying from " + this;
+    print this.name + " " + this.age + " " + this.subject;
+  }
+}
+
+class HeadTeacher < Teacher {
+  init(name, age, subject, school) {
+    super(name, age, subject);
+    this.school = school;
+  }
+
+  display() {
+    super.display();
+
+    print "Displaying from " + this;
+    print this.name + " " + this.age + " " + this.subject + " " + this.school;
+  }
+}
+
+var p = Person("Freddie", 17);
+var t = Teacher("Michael", 61, "Maths");
+var h = HeadTeacher("John", 70, "Science", "St Nins");
+
+print p;
+print t;
+print h;
+
+p.display();
+t.display();
+h.display();

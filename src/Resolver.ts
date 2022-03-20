@@ -9,6 +9,8 @@ import {
   Literal,
   Logical,
   Set,
+  Super,
+  SuperCall,
   This,
   Unary,
   Variable,
@@ -44,12 +46,14 @@ export enum FunctionType {
   NONE,
   FUNCTION,
   INITIALIZER,
+  STATIC_INITIALIZER,
   METHOD,
 }
 
 export enum ClassType {
   NONE,
   CLASS,
+  DERIVED,
 }
 
 export enum LoopType {
@@ -72,6 +76,8 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
   private currentClass: ClassType = ClassType.NONE;
   private currentLoop: LoopType = LoopType.NONE;
 
+  private currentSuperCall = false;
+
   constructor(interpreter: Interpreter) {
     this.interpreter = interpreter;
   }
@@ -89,8 +95,19 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     const enclosingClass = this.currentClass;
     this.currentClass = ClassType.CLASS;
 
+    if (stmt.superclass) {
+      if (stmt.name.lexeme === stmt.superclass.name.lexeme)
+        Lox.error(stmt.superclass.name, "A class can't inherit from itself.");
+
+      this.currentClass = ClassType.DERIVED;
+
+      this.resolve(stmt.superclass);
+    }
+
     this.beginScope();
     this.scopes[this.scopes.length - 1].set("this", VariableState.USED);
+    if (this.currentClass === ClassType.DERIVED)
+      this.scopes[this.scopes.length - 1].set("super", VariableState.USED);
 
     const methods = [stmt.methods, stmt.staticMethods];
     const getters = [stmt.getters, stmt.staticGetters];
@@ -102,7 +119,8 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
 
         let declaration = FunctionType.METHOD;
         if (m.name.lexeme === "init") {
-          declaration = FunctionType.INITIALIZER;
+          declaration =
+            ms === stmt.staticMethods ? FunctionType.STATIC_INITIALIZER : FunctionType.INITIALIZER;
 
           if (ms === stmt.staticMethods && m.params.length > 0) {
             Lox.error(m.name, "Class static initializer can't have parameters.");
@@ -169,7 +187,10 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
       Lox.error(stmt.keyword, "Can't return from top-level code.");
 
     if (stmt.value) {
-      if (this.currentFunction === FunctionType.INITIALIZER)
+      if (
+        this.currentFunction === FunctionType.INITIALIZER ||
+        this.currentFunction === FunctionType.STATIC_INITIALIZER
+      )
         Lox.error(stmt.keyword, "Can't return a value from an initializer.");
 
       this.resolve(stmt.value);
@@ -228,6 +249,31 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     this.resolveLocal(expr, expr.keyword);
   }
 
+  visitSuperExpr(expr: Super) {
+    if (this.currentClass !== ClassType.DERIVED)
+      Lox.error(expr.keyword, "Can't use 'super' outside of a derived class.");
+    if (this.currentFunction === FunctionType.INITIALIZER && !this.currentSuperCall)
+      Lox.error(expr.keyword, "Can't access property on superclass until 'super' has been called.");
+
+    this.resolveLocal(expr, expr.keyword);
+  }
+
+  visitSuperCallExpr(expr: SuperCall) {
+    if (this.currentClass !== ClassType.DERIVED)
+      Lox.error(expr.keyword, "Can't use 'super' outside of a derived class.");
+    if (this.currentFunction === FunctionType.STATIC_INITIALIZER)
+      Lox.error(expr.keyword, "Can't call 'super' inisde class static initializer.");
+    else if (this.currentFunction !== FunctionType.INITIALIZER)
+      Lox.error(expr.keyword, "Can't call 'super' outside of class initializer.");
+    if (this.currentFunction === FunctionType.INITIALIZER && this.currentSuperCall)
+      Lox.error(expr.keyword, "Can't call 'super' more than once inside class initializer.");
+
+    this.currentSuperCall = true;
+    this.resolveLocal(expr, expr.keyword);
+
+    expr.args.forEach((a) => this.resolve(a));
+  }
+
   visitGroupingExpr(expr: Grouping) {
     this.resolve(expr.expression);
   }
@@ -271,6 +317,15 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     });
     this.resolve(func.body);
     this.endScope();
+
+    if (
+      type === FunctionType.INITIALIZER &&
+      this.currentClass === ClassType.DERIVED &&
+      !this.currentSuperCall
+    ) {
+      Lox.error((<Function>func).name, "Superclass was not initialized inside subclass initializer.");
+    }
+    this.currentSuperCall = false;
 
     this.currentFunction = enclosingFunction;
     this.currentLoop = enclosingLoop;
