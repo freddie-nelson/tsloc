@@ -110,8 +110,9 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     this.beginScope();
     this.scopes[this.scopes.length - 1].set("this", VariableState.USED);
 
-    const methods = [stmt.methods, stmt.staticMethods];
-    const getters = [stmt.getters, stmt.staticGetters];
+    const methods = [stmt.properties.methods, stmt.staticProperties.methods];
+    const getters = [stmt.properties.getters, stmt.staticProperties.getters];
+    const fields = [stmt.properties.fields, stmt.staticProperties.fields];
 
     methods.forEach((ms, i) => {
       ms.forEach((m) => {
@@ -121,9 +122,9 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         let declaration = FunctionType.METHOD;
         if (m.name.lexeme === "init") {
           declaration =
-            ms === stmt.staticMethods ? FunctionType.STATIC_INITIALIZER : FunctionType.INITIALIZER;
+            ms === stmt.staticProperties.methods ? FunctionType.STATIC_INITIALIZER : FunctionType.INITIALIZER;
 
-          if (ms === stmt.staticMethods && m.params.length > 0) {
+          if (ms === stmt.staticProperties.methods && m.params.length > 0) {
             Lox.error(m.name, "Class static initializer can't have parameters.");
           }
         }
@@ -134,9 +135,12 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
 
     getters.forEach((gs) => {
       gs.forEach((g) => {
-        let declaration = FunctionType.METHOD;
-        this.resolveFunction(g, declaration);
+        this.resolveFunction(g, FunctionType.METHOD);
       });
+    });
+
+    fields.forEach((fs) => {
+      this.resolveFunction(fs, FunctionType.METHOD);
     });
 
     this.endScope();

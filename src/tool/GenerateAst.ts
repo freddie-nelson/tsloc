@@ -36,7 +36,7 @@ export default class GenerateAst {
       "Print      :: expression: Expr",
       "Var        :: name: Token, initializer: Expr | undefined",
       "While      :: condition: Expr, body: Stmt, isFor: boolean = false, hasIncrement: boolean = false",
-      "Class      :: name: Token, superclass: Variable | undefined, methods: Function[], getters: Function[], staticMethods: Function[], staticGetters: Function[]",
+      "Class      :: name: Token, superclass: Variable | undefined, properties: ClassProperties, staticProperties: ClassProperties",
       "Break      :: keyword: Token",
       "Continue   :: keyword: Token",
     ]);
@@ -46,6 +46,7 @@ export default class GenerateAst {
     const path = `${outputDir}/${baseName}.ts`;
     const data = `
     import Token from "./Token";
+    import { ClassProperties } from "./LoxClass";
     ${baseName !== "Expr" ? 'import { Expr, Variable } from "./Expr"' : ""};
     ${baseName !== "Stmt" ? 'import { Stmt } from "./Stmt"' : ""};
 

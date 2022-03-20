@@ -34,6 +34,7 @@ import {
   While,
 } from "./Stmt";
 import { setUncaughtExceptionCaptureCallback } from "process";
+import { ClassProperties } from "./LoxClass";
 
 export default class Parser {
   private readonly tokens: Token[];
@@ -66,6 +67,17 @@ export default class Parser {
     }
   }
 
+  private classFieldsToFunction(fields: Assign[]) {
+    return new FunctionExpr(
+      [],
+      fields.map((f) => {
+        return new Expression(
+          new Set(new This(new Token(TokenType.IDENTIFIER, "this", undefined, -1)), f.name, f.value)
+        );
+      })
+    );
+  }
+
   private classDeclaration(): Stmt {
     const name = this.consume(TokenType.IDENTIFIER, "Expect class name.");
 
@@ -77,21 +89,40 @@ export default class Parser {
 
     this.consume(TokenType.LEFT_BRACE, "Expect '{' before class body.");
 
-    const staticMethods: Function[] = [];
-    const staticGetters: Function[] = [];
+    const staticProperties: ClassProperties = {
+      methods: [],
+      getters: [],
+      fields: null,
+    };
 
-    const methods: Function[] = [];
-    const getters: Function[] = [];
+    const properties: ClassProperties = {
+      methods: [],
+      getters: [],
+      fields: null,
+    };
+
+    const fields: Assign[] = [];
+    const staticFields: Assign[] = [];
 
     while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd()) {
       let kind = "method";
-      let type = this.match(TokenType.CLASS) ? "static" : "instance";
+      const props = this.match(TokenType.CLASS) ? staticProperties : properties;
 
-      const name = this.consume(TokenType.IDENTIFIER, `Expect ${kind} name.`);
+      const name = this.consume(TokenType.IDENTIFIER, `Expect method, getter or field name.`);
 
       let params: Token[] = [];
       if (this.match(TokenType.LEFT_PAREN)) {
         params = this.parameters();
+      } else if (this.match(TokenType.EQUAL)) {
+        kind = "field";
+
+        const value = this.expression();
+        this.consume(TokenType.SEMICOLON, "Expect ';' after field declaration.");
+
+        if (props === staticProperties) staticFields.push(new Assign(name, value));
+        else fields.push(new Assign(name, value));
+
+        continue;
       } else {
         kind = "getter";
       }
@@ -102,24 +133,24 @@ export default class Parser {
 
       const func = new Function(name, params, body);
 
-      if (type === "instance") {
-        if (kind === "method") {
-          methods.push(func);
-        } else {
-          getters.push(func);
-        }
-      } else {
-        if (kind === "method") {
-          staticMethods.push(func);
-        } else {
-          staticGetters.push(func);
-        }
+      switch (kind) {
+        case "method":
+          props.methods.push(func);
+          break;
+        case "getter":
+          props.getters.push(func);
+          break;
+        default:
+          break;
       }
     }
 
+    properties.fields = this.classFieldsToFunction(fields);
+    staticProperties.fields = this.classFieldsToFunction(staticFields);
+
     this.consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.");
 
-    return new Class(name, superclass, methods, getters, staticMethods, staticGetters);
+    return new Class(name, superclass, properties, staticProperties);
   }
 
   private varDeclaration(): Stmt {

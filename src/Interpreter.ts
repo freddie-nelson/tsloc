@@ -24,7 +24,7 @@ import {
   Visitor as ExprVistor,
 } from "./Expr";
 import Lox from "./Lox";
-import LoxClass, { ClassMethods } from "./LoxClass";
+import LoxClass, { ClassMethods, ClassPropertiesRuntime } from "./LoxClass";
 import LoxInstance from "./LoxInstance";
 import {
   Block,
@@ -210,7 +210,7 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
     const method = superclass.findMethod(name, isStatic);
     if (method) return method.bind(obj);
 
-    return superclass;
+    throw new RuntimeError(expr.property, `Undefined property '${expr.property.lexeme}'.`);
   }
 
   visitSuperCallExpr(expr: SuperCall): Object {
@@ -235,15 +235,6 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
     }
 
     return null;
-  }
-
-  getSuper(expr: Super | SuperCall) {
-    const distance = this.locals.get(expr);
-
-    const superclass = <LoxClass>this.environment.getAt(distance, expr.keyword);
-    const obj = <LoxInstance>(
-      this.environment.getAt(distance - 1, new Token(TokenType.IDENTIFIER, "this", undefined, -1))
-    );
   }
 
   visitGroupingExpr(expr: Grouping): Object {
@@ -285,7 +276,7 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
     return new CallableFunction(expr, this.environment);
   }
 
-  private evaluate(expr: Expr) {
+  evaluate(expr: Expr) {
     return expr.accept(this);
   }
 
@@ -309,41 +300,40 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
       this.environment.define("super", superclass);
     }
 
-    const staticMethods: ClassMethods = new Map();
-    const staticGetters: ClassMethods = new Map();
+    const staticProperties: ClassPropertiesRuntime = {
+      methods: new Map(),
+      getters: new Map(),
+      fields: new CallableFunction(stmt.staticProperties.fields, this.environment),
+    };
 
-    const methods: ClassMethods = new Map();
-    const getters: ClassMethods = new Map();
+    const properties: ClassPropertiesRuntime = {
+      methods: new Map(),
+      getters: new Map(),
+      fields: new CallableFunction(stmt.properties.fields, this.environment),
+    };
 
-    stmt.staticMethods.forEach((m) => {
-      const func = new CallableFunction(m, this.environment, m.name.lexeme === "init");
-      staticMethods.set(m.name.lexeme, func);
+    const methods = [stmt.staticProperties.methods, stmt.properties.methods];
+    const getters = [stmt.staticProperties.getters, stmt.properties.getters];
+
+    methods.forEach((ms) => {
+      ms.forEach((m) => {
+        const func = new CallableFunction(m, this.environment, m.name.lexeme === "init");
+
+        if (ms === stmt.staticProperties.methods) staticProperties.methods.set(m.name.lexeme, func);
+        else properties.methods.set(m.name.lexeme, func);
+      });
     });
 
-    stmt.staticGetters.forEach((g) => {
-      const func = new CallableFunction(g, this.environment);
-      staticGetters.set(g.name.lexeme, func);
+    getters.forEach((gs) => {
+      gs.forEach((g) => {
+        const func = new CallableFunction(g, this.environment);
+
+        if (gs === stmt.staticProperties.getters) staticProperties.getters.set(g.name.lexeme, func);
+        else properties.getters.set(g.name.lexeme, func);
+      });
     });
 
-    stmt.methods.forEach((m) => {
-      const func = new CallableFunction(m, this.environment, m.name.lexeme === "init");
-      methods.set(m.name.lexeme, func);
-    });
-
-    stmt.getters.forEach((g) => {
-      const func = new CallableFunction(g, this.environment);
-      getters.set(g.name.lexeme, func);
-    });
-
-    const klass = new LoxClass(
-      stmt.name.lexeme,
-      <LoxClass>superclass,
-      methods,
-      getters,
-      staticMethods,
-      staticGetters,
-      this
-    );
+    const klass = new LoxClass(stmt.name.lexeme, <LoxClass>superclass, properties, staticProperties, this);
 
     if (superclass) {
       this.environment = this.environment.enclosing;

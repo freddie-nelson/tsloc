@@ -1,5 +1,6 @@
 
     import Token from "./Token";
+    import { ClassProperties } from "./LoxClass";
     ;
     import { Stmt } from "./Stmt";
 

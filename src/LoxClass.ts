@@ -1,28 +1,37 @@
 import Callable from "./Callable";
 import CallableFunction from "./CallableFunction";
+import { Assign, FunctionExpr } from "./Expr";
 import Interpreter from "./Interpreter";
 import LoxInstance from "./LoxInstance";
+import { Function } from "./Stmt";
 import Token from "./Token";
 
 export type ClassMethods = Map<string, CallableFunction>;
+
+export interface ClassProperties {
+  methods: Function[];
+  getters: Function[];
+  fields: FunctionExpr;
+}
+
+export interface ClassPropertiesRuntime {
+  methods: ClassMethods;
+  getters: ClassMethods;
+  fields: CallableFunction;
+}
 
 export default class LoxClass extends LoxInstance implements Callable {
   readonly name: string;
   readonly superclass: LoxClass;
 
-  private readonly staticMethods: ClassMethods;
-  private readonly staticGetters: ClassMethods;
-
-  private readonly methods: ClassMethods;
-  private readonly getters: ClassMethods;
+  private readonly properties: ClassPropertiesRuntime;
+  private readonly staticProperties: ClassPropertiesRuntime;
 
   constructor(
     name: string,
     superclass: LoxClass,
-    methods: ClassMethods,
-    getters: ClassMethods,
-    staticMethods: ClassMethods,
-    staticGetters: ClassMethods,
+    properties: ClassPropertiesRuntime,
+    staticProperties: ClassPropertiesRuntime,
     interpreter: Interpreter
   ) {
     super();
@@ -31,14 +40,17 @@ export default class LoxClass extends LoxInstance implements Callable {
     this.superclass = superclass;
     this.name = name;
 
-    this.staticMethods = staticMethods;
-    this.staticGetters = staticGetters;
-
-    this.methods = methods;
-    this.getters = getters;
+    this.properties = properties;
+    this.staticProperties = staticProperties;
 
     // run static initializer
-    const initializer = this.staticMethods.get("init");
+    let klass: LoxClass = this;
+    while (klass) {
+      this.staticProperties.fields.bind(this).call(interpreter, []);
+      klass = klass.superclass;
+    }
+
+    const initializer = this.staticProperties.methods.get("init");
     if (initializer) {
       initializer.bind(this).call(interpreter, []);
     }
@@ -50,6 +62,14 @@ export default class LoxClass extends LoxInstance implements Callable {
 
   call(interpreter: Interpreter, args: Object[]) {
     const instance = new LoxInstance(this);
+
+    // add initial fields
+    let klass: LoxClass = this;
+    while (klass) {
+      klass.properties.fields.bind(instance).call(interpreter, []);
+      klass = klass.superclass;
+    }
+
     const initializer = this.findMethod("init", false);
     if (initializer) {
       initializer.bind(instance).call(interpreter, args);
@@ -67,29 +87,11 @@ export default class LoxClass extends LoxInstance implements Callable {
     return 0;
   }
 
-  findProperty(property: string, isStatic: boolean): CallableFunction | undefined {
-    const getter = this.findGetter(property, isStatic);
-    if (getter) return getter;
-
-    const method = this.findMethod(property, isStatic);
-    if (method) return method;
-  }
-
   findMethod(method: string, isStatic: boolean): CallableFunction | undefined {
-    if (isStatic) {
-      if (this.staticMethods.has(method)) {
-        return this.staticMethods.get(method);
-      }
+    const props = isStatic ? this.staticProperties : this.properties;
 
-      if (this.superclass) {
-        return this.superclass.findMethod(method, isStatic);
-      }
-
-      return undefined;
-    }
-
-    if (this.methods.has(method)) {
-      return this.methods.get(method);
+    if (props.methods.has(method)) {
+      return props.methods.get(method);
     }
 
     if (this.superclass) {
@@ -100,20 +102,10 @@ export default class LoxClass extends LoxInstance implements Callable {
   }
 
   findGetter(getter: string, isStatic: boolean): CallableFunction | undefined {
-    if (isStatic) {
-      if (this.staticGetters.has(getter)) {
-        return this.staticGetters.get(getter);
-      }
+    const props = isStatic ? this.staticProperties : this.properties;
 
-      if (this.superclass) {
-        return this.superclass.findGetter(getter, isStatic);
-      }
-
-      return undefined;
-    }
-
-    if (this.getters.has(getter)) {
-      return this.getters.get(getter);
+    if (props.getters.has(getter)) {
+      return props.getters.get(getter);
     }
 
     if (this.superclass) {

@@ -1,5 +1,6 @@
 
     import Token from "./Token";
+    import { ClassProperties } from "./LoxClass";
     import { Expr, Variable } from "./Expr";
     ;
 
@@ -158,19 +159,15 @@ this.hasIncrement = hasIncrement;
       export class Class extends Stmt {
         readonly name: Token;
 readonly superclass: Variable | undefined;
-readonly methods: Function[];
-readonly getters: Function[];
-readonly staticMethods: Function[];
-readonly staticGetters: Function[];
+readonly properties: ClassProperties;
+readonly staticProperties: ClassProperties;
 
-        constructor(name: Token,superclass: Variable | undefined,methods: Function[],getters: Function[],staticMethods: Function[],staticGetters: Function[]) {
+        constructor(name: Token,superclass: Variable | undefined,properties: ClassProperties,staticProperties: ClassProperties) {
           super();
           this.name = name;
 this.superclass = superclass;
-this.methods = methods;
-this.getters = getters;
-this.staticMethods = staticMethods;
-this.staticGetters = staticGetters;
+this.properties = properties;
+this.staticProperties = staticProperties;
 
         }
 

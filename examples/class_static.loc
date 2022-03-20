@@ -1,8 +1,6 @@
 class Math {
-  class init() {
-    this.PI = 3.14159;
-    this.E = 2.71828;
-  }
+  class PI = 3.14159;
+  class E = 2.71828;
 
   class PI_SQUARED {
     return this.PI * this.PI;
