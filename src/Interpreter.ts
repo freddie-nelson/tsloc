@@ -191,15 +191,34 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
   }
 
   visitSuperExpr(expr: Super) {
-    return this.lookUpVariable(expr.keyword, expr);
+    const distance = this.locals.get(expr);
+
+    const superclass = <LoxClass>this.environment.getAt(distance, expr.keyword);
+    const obj = <LoxInstance>(
+      this.environment.getAt(distance - 1, new Token(TokenType.IDENTIFIER, "this", undefined, -1))
+    );
+
+    const name = expr.property.lexeme;
+    const isStatic = obj instanceof LoxClass;
+
+    const getter = superclass.findGetter(name, isStatic);
+    if (getter) {
+      const func = getter.bind(obj);
+      return func.call(this, []);
+    }
+
+    const method = superclass.findMethod(name, isStatic);
+    if (method) return method.bind(obj);
+
+    return superclass;
   }
 
   visitSuperCallExpr(expr: SuperCall): Object {
     const distance = this.locals.get(expr);
 
     const superclass = <LoxClass>this.environment.getAt(distance, expr.keyword);
-    const instance = <LoxInstance>(
-      this.environment.getAt(distance, new Token(TokenType.IDENTIFIER, "this", undefined, -1))
+    const obj = <LoxInstance>(
+      this.environment.getAt(distance - 1, new Token(TokenType.IDENTIFIER, "this", undefined, -1))
     );
 
     const args = expr.args.map((a) => this.evaluate(a));
@@ -210,11 +229,21 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
       );
     }
 
-    instance.super = superclass.call(this, args);
-
-    this.environment.assignAt(distance, expr.keyword, instance.super);
+    const initializer = superclass.findMethod("init", false);
+    if (initializer) {
+      initializer.bind(obj).call(this, args);
+    }
 
     return null;
+  }
+
+  getSuper(expr: Super | SuperCall) {
+    const distance = this.locals.get(expr);
+
+    const superclass = <LoxClass>this.environment.getAt(distance, expr.keyword);
+    const obj = <LoxInstance>(
+      this.environment.getAt(distance - 1, new Token(TokenType.IDENTIFIER, "this", undefined, -1))
+    );
   }
 
   visitGroupingExpr(expr: Grouping): Object {
@@ -275,6 +304,11 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
 
     this.environment.define(stmt.name.lexeme, null);
 
+    if (stmt.superclass) {
+      this.environment = new Environment(this.environment);
+      this.environment.define("super", superclass);
+    }
+
     const staticMethods: ClassMethods = new Map();
     const staticGetters: ClassMethods = new Map();
 
@@ -310,6 +344,11 @@ export default class Interpreter implements ExprVistor<Object>, StmtVisitor<void
       staticGetters,
       this
     );
+
+    if (superclass) {
+      this.environment = this.environment.enclosing;
+    }
+
     this.environment.assign(stmt.name, klass);
   }
 

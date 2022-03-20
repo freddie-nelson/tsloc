@@ -148,10 +148,12 @@ this.value = value;
     
       export class Super extends Expr {
         readonly keyword: Token;
+readonly property: Token;
 
-        constructor(keyword: Token) {
+        constructor(keyword: Token,property: Token) {
           super();
           this.keyword = keyword;
+this.property = property;
 
         }
 

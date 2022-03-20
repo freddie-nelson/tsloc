@@ -5,7 +5,6 @@ import Token from "./Token";
 
 export default class LoxInstance {
   klass: LoxClass;
-  super: LoxInstance;
 
   private readonly fields: Map<string, Object> = new Map();
 
@@ -14,23 +13,18 @@ export default class LoxInstance {
   }
 
   get(name: Token, interpreter: Interpreter, isStatic = false): Object {
-    let instance: LoxInstance = this;
-    while (instance) {
-      if (instance.fields.has(name.lexeme)) {
-        return instance.fields.get(name.lexeme);
-      }
-
-      instance = instance.super;
+    if (this.fields.has(name.lexeme)) {
+      return this.fields.get(name.lexeme);
     }
 
     const getter = this.klass.findGetter(name.lexeme, isStatic);
     if (getter) {
-      const func = getter.bind(this, this.super);
+      const func = getter.bind(this);
       return func.call(interpreter, []);
     }
 
     const method = this.klass.findMethod(name.lexeme, isStatic);
-    if (method) return method.bind(this, this.super);
+    if (method) return method.bind(this);
 
     throw new RuntimeError(name, `Undefined property '${name.lexeme}'.`);
   }

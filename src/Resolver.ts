@@ -102,12 +102,13 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
       this.currentClass = ClassType.DERIVED;
 
       this.resolve(stmt.superclass);
+
+      this.beginScope();
+      this.scopes[this.scopes.length - 1].set("super", VariableState.USED);
     }
 
     this.beginScope();
     this.scopes[this.scopes.length - 1].set("this", VariableState.USED);
-    if (this.currentClass === ClassType.DERIVED)
-      this.scopes[this.scopes.length - 1].set("super", VariableState.USED);
 
     const methods = [stmt.methods, stmt.staticMethods];
     const getters = [stmt.getters, stmt.staticGetters];
@@ -139,6 +140,9 @@ export default class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     });
 
     this.endScope();
+
+    if (stmt.superclass) this.endScope();
+
     this.currentClass = enclosingClass;
   }
 

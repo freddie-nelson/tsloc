@@ -5,7 +5,6 @@ class Person {
   }
 
   display() {
-    print "Displaying from " + this;
     print this.name + " " + this.age;
   }
 }
@@ -17,9 +16,6 @@ class Teacher < Person {
   }
 
   display() {
-    super.display();
-
-    print "Displaying from " + this;
     print this.name + " " + this.age + " " + this.subject;
   }
 }
@@ -31,9 +27,6 @@ class HeadTeacher < Teacher {
   }
 
   display() {
-    super.display();
-
-    print "Displaying from " + this;
     print this.name + " " + this.age + " " + this.subject + " " + this.school;
   }
 }

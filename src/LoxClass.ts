@@ -37,14 +37,10 @@ export default class LoxClass extends LoxInstance implements Callable {
     this.methods = methods;
     this.getters = getters;
 
-    if (superclass) {
-      this.super = superclass;
-    }
-
     // run static initializer
     const initializer = this.staticMethods.get("init");
     if (initializer) {
-      initializer.bind(this, this.superclass).call(interpreter, []);
+      initializer.bind(this).call(interpreter, []);
     }
   }
 
@@ -54,13 +50,9 @@ export default class LoxClass extends LoxInstance implements Callable {
 
   call(interpreter: Interpreter, args: Object[]) {
     const instance = new LoxInstance(this);
-    const initializer = this.methods.get("init");
-
+    const initializer = this.findMethod("init", false);
     if (initializer) {
-      initializer.bind(instance, this.superclass).call(interpreter, args);
-    } else if (this.superclass) {
-      const superInstance = this.superclass.call(interpreter, args);
-      instance.super = superInstance;
+      initializer.bind(instance).call(interpreter, args);
     }
 
     return instance;
@@ -73,6 +65,14 @@ export default class LoxClass extends LoxInstance implements Callable {
     }
 
     return 0;
+  }
+
+  findProperty(property: string, isStatic: boolean): CallableFunction | undefined {
+    const getter = this.findGetter(property, isStatic);
+    if (getter) return getter;
+
+    const method = this.findMethod(property, isStatic);
+    if (method) return method;
   }
 
   findMethod(method: string, isStatic: boolean): CallableFunction | undefined {

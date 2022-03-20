@@ -475,10 +475,12 @@ export default class Parser {
     if (this.match(TokenType.SUPER)) {
       const keyword = this.previous();
 
-      if (this.check(TokenType.DOT)) {
-        return new Super(keyword);
+      if (this.match(TokenType.DOT)) {
+        this.consume(TokenType.IDENTIFIER, "Expect property name after 'super'.");
+
+        return new Super(keyword, this.previous());
       } else if (this.match(TokenType.LEFT_PAREN)) {
-        const call = this.finishCall(new Super(keyword));
+        const call = this.finishCall(new Super(keyword, undefined));
         return new SuperCall(keyword, call.args);
       }
 

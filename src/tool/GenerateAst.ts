@@ -18,7 +18,7 @@ export default class GenerateAst {
       "Get          :: object: Expr, name: Token",
       "Set          :: object: Expr, name: Token, value: Expr",
       "This         :: keyword: Token",
-      "Super        :: keyword: Token",
+      "Super        :: keyword: Token, property: Token",
       "SuperCall    :: keyword: Token, args: Expr[]",
       "Grouping     :: expression: Expr",
       "Literal      :: value: any",
